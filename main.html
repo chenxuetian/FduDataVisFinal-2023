@@ -67,7 +67,7 @@
         d3.json("./data/1.3_traffic/road2-12-9road/laneroad_with9road.geojson"),
         d3.json("./data/1.3_traffic/road2-12-9road/signalroad_with9road.geojson"),
         d3.json("./data/1.3_traffic/road2-12-9road/stoplineroad_with9road.geojson"),
-        d3.json("./data/1.3_traffic/data.json")
+        d3.json("./data.json")
     ]).then( function(totalData) {
         mapData = [totalData[0], totalData[1], totalData[2], totalData[3], totalData[4]]
         Data = totalData[5]

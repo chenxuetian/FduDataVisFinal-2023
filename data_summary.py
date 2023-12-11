@@ -125,7 +125,7 @@ if __name__ == '__main__':
     # merge_records(data_dir, id_dir="./merged_data_ids/1.3_traffic/", intervals=[.5, 1, 2, 5, 10])
     new_data = calibrate_time_stamp(read_data(data_dir, id_dir="./merged_data_ids/1.3_traffic/", interval=2), interval=2)
     new_data = {key: value for idx, (key, value) in enumerate(new_data.items()) if idx < 20}
-    save_path = os.path.join(data_dir, "data.json")
+    save_path = os.path.join("data.json")
     
     save_data(new_data, save_path)
 
