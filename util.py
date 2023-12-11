@@ -9,7 +9,7 @@ def align_timestamp(timestamp, interval):
 
 
 def merge_records(data_dir, id_dir, intervals):
-    data_files = [os.path.join(data_dir, fname) for fname in os.listdir(data_dir) if fname.endswith(".json")]
+    data_files = sorted([os.path.join(data_dir, fname) for fname in os.listdir(data_dir) if fname.endswith(".json")])
     all_records_vid_ts = []
     for data_file in data_files:
         records = []
@@ -59,7 +59,7 @@ def read_data(data_dir, id_dir=None, interval=None):
     else:
         selected = None
     
-    data_files = [os.path.join(data_dir, fname) for fname in os.listdir(data_dir) if fname.endswith(".json")]
+    data_files = sorted([os.path.join(data_dir, fname) for fname in os.listdir(data_dir) if fname.endswith(".json")])
     all_records = []
     for fid, data_file in enumerate(data_files):
         records = []
