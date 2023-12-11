@@ -2,6 +2,7 @@ import os
 import json
 import pickle
 from collections import defaultdict
+from tqdm import tqdm
 
 
 def align_timestamp(timestamp, interval):
@@ -67,7 +68,10 @@ def read_data(data_dir, id_dir=None, interval=None):
         with open(data_file) as f:
             while line := f.readline():
                 if selected and selected[fid][lid]:
-                    records.append(json.loads(line))
+                    rec = (json.loads(line))
+                    rec["position"] = json.loads(rec["position"])
+                    rec["shape"] = json.loads(rec["shape"])    
+                    records.append(rec)                    
                 lid += 1
         all_records.extend(records)
 
