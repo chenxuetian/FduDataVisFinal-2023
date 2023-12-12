@@ -16,17 +16,20 @@ print("================================================================")
 def _get():
     return jsonify("Hello world!")
 
-@app.route('/get_example_data', methods=["GET"])
-def _get_example_data():
+@app.route('/get_map_data', methods=["GET"])
+def get_map_data():
     map_data_path = "data/1.3_traffic/road2-12-9road"
     map_data = []
     for road in ["boundary", "crosswalk", "lane", "signal", "stopline"]:
         with open(os.path.join(map_data_path, f"{road}road_with9road.geojson")) as f:
             map_data.append(json.load(f)) 
-    with open("data.json") as f:
-            record_data = json.load(f)
-    all_data = {"map_data": map_data, "record_data": record_data}
-    return all_data
+    return map_data
+
+@app.route('/get_record_data', methods=["GET"])
+def get_record_data():
+    with open("vehicles_lane_data.json") as f:
+        record_data = json.load(f)
+    return record_data
 
 
 if __name__ == "__main__":
