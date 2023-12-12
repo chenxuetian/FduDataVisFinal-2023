@@ -71,16 +71,41 @@
       10: "#333333",
     };
 
+    let TYPE = {
+      1: "小型车辆",
+      2: "行人",
+      3: "非机动车",
+      4: "卡车",
+      5: "厢式货车、面包车",
+      6: "客车",
+      10: "手推车、三轮车"
+    }
+
     // 向服务器发送GET请求，获取数据
-    fetch("http://127.0.0.1:5400/get_example_data")
-      .then((response) => {
-        return response.json();
+    // fetch("http://127.0.0.1:5400/get_example_data")
+    //   .then((response) => {
+    //     return response.json();
+    //   })
+    //   .then((data) => {
+    //     renderMainFig(data.record_data, data.map_data); // 绘制道路和车辆
+    //   })
+    //   .catch((error) => {
+    //     console.error("Error:", error);
+    //  });
+      
+      Promise.all([
+      d3.json("./data/1.3_traffic/road2-12-9road/boundaryroad_with9road.geojson"),
+      d3.json("./data/1.3_traffic/road2-12-9road/crosswalkroad_with9road.geojson"),
+      d3.json("./data/1.3_traffic/road2-12-9road/laneroad_with9road.geojson"),
+      d3.json("./data/1.3_traffic/road2-12-9road/signalroad_with9road.geojson"),
+      d3.json("./data/1.3_traffic/road2-12-9road/stoplineroad_with9road.geojson"),
+      d3.json("./vehicles_lane_data.json")
+      ]).then( function(loadData)
+      {
+        data = loadData[5]
+        mapData = [loadData[0], loadData[1], loadData[2], loadData[3], loadData[4]]
+        renderMainFig(data, mapData)
       })
-      .then((data) => {
-        renderMainFig(data.record_data, data.map_data); // 绘制道路和车辆
-      })
-      .catch((error) => {
-        console.error("Error:", error);
-      });
+
   </script>
 </body>

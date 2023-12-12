@@ -94,8 +94,9 @@ function renderObject (svg, Data, projection, first_time_stamp=840670945) {
     .data(vehicleData, d => d["id"])
     .enter()
     .append("rect")
-    // .attr("transform", d => `rotate(${d['orientation'] / Math.PI * 180},
-    //       ${reformulatePos(d)[0]}, ${reformulatePos(d)[1]})`)    
+    .attr("transform", d => `rotate(${d['orientation'] / Math.PI * 180},
+          ${reformulatePos(d)[0]}, ${reformulatePos(d)[1]})`)   
+    .attr("angle", d => d['orientation'] / Math.PI * 180) 
     .attr("x", d => reformulatePos(d)[0])
     .attr("y", d => reformulatePos(d)[1])
     .attr("width", d => reformulatePos(d)[2])
@@ -172,14 +173,15 @@ async function updateObject (svg, Data, projection, new_time_stamp=840671014, tr
     .data(vehicleData, d => d["id"])
     .enter()
     .append("rect")
-    // .attr("transform", d => `rotate(${d['orientation'] / Math.PI * 180},
-    //       ${reformulatePos(d)[0]}, ${reformulatePos(d)[1]})`)    
+    .attr("transform", d => `rotate(${d['orientation'] / Math.PI * 180},
+          ${reformulatePos(d)[0]}, ${reformulatePos(d)[1]})`)    
+    .attr("angle", d => d['orientation'] / Math.PI * 180)
     .attr("x", d => reformulatePos(d)[0])
     .attr("y", d => reformulatePos(d)[1])
     .attr("width", d => reformulatePos(d)[2])
     .attr("height", d => reformulatePos(d)[3])
     .attr("class", "data_rect")
-    .attr("fill", d => TYPE2COLOR[d["type"]])      
+    .attr("fill", d => TYPE2COLOR[d["type"]]) 
 
     // 其他元素进行调整
     datagroup.
@@ -187,7 +189,33 @@ async function updateObject (svg, Data, projection, new_time_stamp=840671014, tr
     .data(vehicleData, d => d["id"])
     // .attr("transform", d => `rotate(${d['orientation'] / Math.PI * 180},
     //       ${reformulatePos(d)[0]}, ${reformulatePos(d)[1]})`) 
-    .transition(trans)   
+    .transition(trans) 
+    .attrTween("transform", function (d) {
+
+        const rect = d3.select(this)
+        const x_old = Number(rect.attr("x"))
+        const y_old = Number(rect.attr("y"))
+        const angle_old = Number(rect.attr("angle"))
+        const x_new = reformulatePos(d)[0]
+        const y_new = reformulatePos(d)[1]
+        const angle_new = d['orientation'] / Math.PI * 180
+        const width = reformulatePos(d)[2]
+        const height = reformulatePos(d)[3]
+
+        // 计算中心点的变化
+        const interpolateX = d3.interpolateNumber(x_old + width / 2, x_new + width / 2);
+        const interpolateY = d3.interpolateNumber(y_old + height / 2, y_new + height / 2);
+        // 计算角度的变化
+        const interpolateAngle = d3.interpolateNumber(angle_old, angle_new);
+        
+        return function (t) {
+            const centerX = interpolateX(t);
+            const centerY = interpolateY(t);
+            const centerAngle = interpolateAngle(t);
+            return `rotate(${centerAngle}, ${centerX}, ${centerY})`;
+        }
+    })  
+    .attr("angle", d => d['orientation'] / Math.PI * 180)
     .attr("x", d => reformulatePos(d)[0])
     .attr("y", d => reformulatePos(d)[1])
     .attr("width", d => reformulatePos(d)[2])
