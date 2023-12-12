@@ -5,7 +5,7 @@ import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
-from utils import *
+from util import *
 
 ATTR = ["id","seq","is_moving","position","shape","orientation","velocity","type","heading","time_meas","ms_no"]
 
