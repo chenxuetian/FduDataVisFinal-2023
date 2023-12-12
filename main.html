@@ -40,21 +40,6 @@
 </style>
 
 <body>
-<<<<<<< HEAD
-    <!-- 主画布 -->
-    <svg width="1920" height="1280" id="mainsvg" class="svgs" style="background-color: #ffffff;display: block; margin: 0 auto;"></svg>
-<!-- 加载d3.v6 -->
-<script src="https://d3js.org/d3.v6.js"></script>
-<!-- topojson用于地图绘制，是一种对地理拓扑进行编码的方式 -->
-<script src="https://d3js.org/topojson.v1.min.js"></script>
-<script src="mainfig.js"></script>
-<script src="heatmap.js"></script>
-<script>
-    let MARGIN = {top:200, right:200, left:200, bottom:200}
-    let WIDTH = 1920, HEIGHT = 1280
-    let WIDTH1 = WIDTH - MARGIN.left - MARGIN.right
-    let HEIGHT1 = HEIGHT - MARGIN.top - MARGIN.bottom
-=======
   <!-- 主画布 -->
   <svg
     width="1920"
@@ -75,7 +60,6 @@
     let WIDTH1 = (WIDTH - MARGIN.left - MARGIN.right) / 2;
     let HEIGHT1 = (HEIGHT - MARGIN.top - MARGIN.bottom) / 2;
     let POS1 = { x: MARGIN.left, y: MARGIN.top };
->>>>>>> d83798773751e58ba0440b8ca628761165c29c03
 
     let TYPE2COLOR = {
       1: "#FA8828",
@@ -87,24 +71,6 @@
       10: "#333333",
     };
 
-<<<<<<< HEAD
-    Promise.all([
-        d3.json("./data/1.3_traffic/road2-12-9road/boundaryroad_with9road.geojson"),
-        d3.json("./data/1.3_traffic/road2-12-9road/crosswalkroad_with9road.geojson"),
-        d3.json("./data/1.3_traffic/road2-12-9road/laneroad_with9road.geojson"),
-        d3.json("./data/1.3_traffic/road2-12-9road/signalroad_with9road.geojson"),
-        d3.json("./data/1.3_traffic/road2-12-9road/stoplineroad_with9road.geojson"),
-        d3.json("./data.json")
-    ]).then( function(totalData) {
-        mapData = [totalData[0], totalData[1], totalData[2], totalData[3], totalData[4]]
-        Data = totalData[5]
-        renderMainFig(Data, mapData)
-    })
-
-</script>   
-
-</body>
-=======
     // 向服务器发送GET请求，获取数据
     fetch("http://127.0.0.1:5400/get_example_data")
       .then((response) => {
@@ -118,4 +84,3 @@
       });
   </script>
 </body>
->>>>>>> d83798773751e58ba0440b8ca628761165c29c03

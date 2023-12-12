@@ -1,4 +1,4 @@
-def render_heatmap(data){
+function render_heatmap(data){
     // 假设 data 是加载的车辆数据
 
     // 定义网格大小
