@@ -17,6 +17,20 @@ print("================================================================")
 def _get():
     return flask.render_template("main.html")
 
+@app.route('/get_sumfig_data', methods=["GET"])
+def get_sumfig_data():
+    types = [
+        "小型车辆",
+        "行人",
+        "非机动车",
+        "卡车",
+        "客车",
+        "手推车、三轮车",
+    ]
+    with open("data_sumfig.json") as f:
+        sumfig_data = json.load(f)
+    return {"types": types, "data": sumfig_data}
+
 @app.route('/get_map_data', methods=["GET"])
 def get_map_data():
     map_data_path = "data/1.3_traffic/road2-12-9road"
@@ -24,13 +38,13 @@ def get_map_data():
     for road in ["boundary", "crosswalk", "lane", "signal", "stopline"]:
         with open(os.path.join(map_data_path, f"{road}road_with9road.geojson")) as f:
             map_data.append(json.load(f)) 
-    return jsonify(map_data)
+    return map_data
 
 @app.route('/get_record_data', methods=["GET"])
 def get_record_data():
     with open("vehicles_lane_data.json") as f:
         record_data = json.load(f)
-    return jsonify(record_data)
+    return record_data
 
 
 if __name__ == "__main__":

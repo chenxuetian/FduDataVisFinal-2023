@@ -1,8 +1,8 @@
 import os
 import json
 import pickle
-from collections import defaultdict
 from tqdm import tqdm
+from collections import defaultdict
 
 
 def align_timestamp(timestamp, interval):
@@ -77,3 +77,36 @@ def read_data(data_dir, id_dir=None, interval=None):
 
     print(f"Successfully read {len(all_records)} records.")
     return all_records
+
+
+def add_records(data_dir, interval):
+    types = {
+        -1: "未知",
+        1: "小型车辆",
+        2: "行人",
+        3: "非机动车",
+        4: "卡车",
+        5: "厢式货车、面包车",
+        6: "客车",
+        7: "静态物体",
+        8: "路牙",
+        9: "锥桶",
+        10: "手推车、三轮车",
+        11: "信号灯",
+        12: "出入口"
+    }
+    data_files = sorted([os.path.join(data_dir, fname) for fname in os.listdir(data_dir) if fname.endswith(".json")])
+    time_type2vids = defaultdict(lambda: defaultdict(set))
+    for data_file in tqdm(data_files):
+        with open(data_file) as f:
+            while line := f.readline():
+                record = json.loads(line)
+                ats = align_timestamp(record["time_meas"], interval)
+                vtype = record["type"]
+                vid = record["id"]
+                time_type2vids[ats][vtype].add(vid)
+    records = []
+    for ats, vtype2vids in sorted(time_type2vids.items()):
+        record = {"time": ats} | {types[vtype]: len(vids) for vtype, vids in vtype2vids.items() if vtype not in {-1, 5, 7, 8, 9, 11, 12}}
+        records.append(record)
+    return records
