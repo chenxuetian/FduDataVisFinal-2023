@@ -53,22 +53,30 @@
   <!-- topojson用于地图绘制，是一种对地理拓扑进行编码的方式 -->
   <script src="https://d3js.org/topojson.v1.min.js"></script>
   <script src="{{url_for('static', filename='js/mainfig.js')}}"></script>
+  <script src="{{url_for('static', filename='js/sumfig.js')}}"></script>
   <script>
     let MARGIN = { top: 20, right: 200, left: 200, bottom: 200 };
     let WIDTH = 1920,
       HEIGHT = 1280;
-    let WIDTH1 = (WIDTH - MARGIN.left - MARGIN.right) / 2;
-    let HEIGHT1 = (HEIGHT - MARGIN.top - MARGIN.bottom) / 2;
-    let POS1 = { x: MARGIN.left, y: MARGIN.top };
+
+    // summary视图
+    let WIDTH_SUM = (WIDTH - MARGIN.left - MARGIN.right) / 2;
+    let HEIGHT_SUM = (HEIGHT - MARGIN.top - MARGIN.bottom) / 5;
+    let POS_SUM = { x: MARGIN.left, y: MARGIN.top };
+
+    // 主视图
+    let WIDTH_MAIN = (WIDTH - MARGIN.left - MARGIN.right) / 2;
+    let HEIGHT_MAIN = (HEIGHT - MARGIN.top - MARGIN.bottom) / 2;
+    let POS_MAIN = { x: MARGIN.left, y: MARGIN.top + HEIGHT_SUM };
 
     let TYPE2COLOR = {
       1: "#FA8828",
       2: "#419BB0",
       3: "#9FC131",
-      4: "#103778",
+      4: "#a65628",
       5: "#E3371E",
-      6: "#000000",
-      10: "#333333",
+      6: "#984ea3",
+      10: "#fe8de5",
     };
 
     let TYPE = {
@@ -80,7 +88,13 @@
       6: "客车",
       10: "手推车、三轮车",
     };
-
+    fetch("http://127.0.0.1:5100/get_sumfig_data")
+      .then((response) => {
+        return response.json();
+      })
+      .then((data) => {
+        renderSummaryFig(data.types, data.data);
+      });
     Promise.all([
       // 向服务器发送GET请求，获取地图数据
       fetch("http://127.0.0.1:5100/get_map_data").then((response) => {

@@ -23,7 +23,7 @@ function renderMap(svg, mapData, projection) {
     .attr("stroke", "#777777")
     .attr("stroke-width", 1)
     .attr("fill", "#FFFFFF")
-    // .attr("transform", `translate(${WIDTH1/2}, ${HEIGHT1/2})`)
+    // .attr("transform", `translate(${WIDTH_MAIN/2}, ${HEIGHT_MAIN/2})`)
     .attr("d", path);
 
   let crossWalkMap = map_group
@@ -35,7 +35,7 @@ function renderMap(svg, mapData, projection) {
     .attr("stroke", "#CCCCCC")
     .attr("stroke-width", 1)
     .attr("fill", "#FFFFFF")
-    // .attr("transform", `translate(${WIDTH1/2}, ${HEIGHT1/2})`)
+    // .attr("transform", `translate(${WIDTH_MAIN/2}, ${HEIGHT_MAIN/2})`)
     .attr("d", path);
 
   let stopLinearMap = map_group
@@ -47,7 +47,7 @@ function renderMap(svg, mapData, projection) {
     .attr("stroke", "#333333")
     .attr("stroke-width", 1)
     .attr("fill", "#FFFFFF")
-    // .attr("transform", `translate(${WIDTH1/2}, ${HEIGHT1/2})`)
+    // .attr("transform", `translate(${WIDTH_MAIN/2}, ${HEIGHT_MAIN/2})`)
     .attr("d", path);
 
   // Zoom(svg)
@@ -305,7 +305,7 @@ function renderLegend(svg) {
     .attr("id", "legend_group")
     .attr(
       "transform",
-      `translate(${WIDTH1 - legendWidth - 20}, ${HEIGHT1 - legendHeight - 20})`
+      `translate(${WIDTH_MAIN - legendWidth - 20}, ${HEIGHT_MAIN - legendHeight - 20})`
     );
 
   figLegend
@@ -413,12 +413,12 @@ function renderMainFig(Data, mapData) {
   let svg = d3.select("#mainsvg");
   let mainfig = svg
     .append("svg")
-    .attr("height", HEIGHT1)
-    .attr("width", WIDTH1)
-    .attr("x", POS1["x"])
-    .attr("y", POS1["y"]);
+    .attr("height", HEIGHT_MAIN)
+    .attr("width", WIDTH_MAIN)
+    .attr("x", POS_MAIN["x"])
+    .attr("y", POS_MAIN["y"]);
 
-  let projection = d3.geoIdentity().fitSize([WIDTH1, HEIGHT1], mapData[0]);
+  let projection = d3.geoIdentity().fitSize([WIDTH_MAIN, HEIGHT_MAIN], mapData[0]);
   console.log(projection.scale());
 
   // 记录时间戳
@@ -448,8 +448,8 @@ function renderMainFig(Data, mapData) {
     .attr("stroke-opacity", 1)
     .attr("stroke-width", 3)
     .attr("stroke", "black")
-    .attr("width", WIDTH1)
-    .attr("height", HEIGHT1)
+    .attr("width", WIDTH_MAIN)
+    .attr("height", HEIGHT_MAIN)
     .on("click", async function (event, d) {
       // console.log("launch")
       cur_time_stamp_idx = 0;
