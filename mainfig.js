@@ -195,12 +195,21 @@ async function updateObject (svg, Data, projection, new_time_stamp=840671014, tr
         const rect = d3.select(this)
         const x_old = Number(rect.attr("x"))
         const y_old = Number(rect.attr("y"))
-        const angle_old = Number(rect.attr("angle"))
+        var angle_old = Number(rect.attr("angle"))
         const x_new = reformulatePos(d)[0]
         const y_new = reformulatePos(d)[1]
-        const angle_new = d['orientation'] / Math.PI * 180
+        var angle_new = d['orientation'] / Math.PI * 180
         const width = reformulatePos(d)[2]
         const height = reformulatePos(d)[3]
+
+        if (Math.abs(angle_new - angle_old) > 180) {
+            if (angle_new > angle_old) {
+                angle_new = angle_new - 360
+            }
+            else {
+                angle_old = angle_old - 360
+            }
+        }
 
         // 计算中心点的变化
         const interpolateX = d3.interpolateNumber(x_old + width / 2, x_new + width / 2);
@@ -232,15 +241,14 @@ async function updateObject (svg, Data, projection, new_time_stamp=840671014, tr
 
     datagroup
     .selectAll('circle')
-    .data(vehicleData, d => d["id"])
+    .data(personData, d => d["id"])
     .enter()
     .append("circle")  
-    .attr("x", d => reformulatePos(d)[0])
-    .attr("y", d => reformulatePos(d)[1])
-    .attr("width", d => reformulatePos(d)[2])
-    .attr("height", d => reformulatePos(d)[3])
-    .attr("class", "data_rect")
-    .attr("fill", d => TYPE2COLOR[d["type"]])      
+    .attr("cx", d => projection([d["position"]["x"], d["position"]["y"]])[0])
+    .attr("cy", d => projection([d["position"]["x"], d["position"]["y"]])[1])
+    .attr("r", d => d["shape"]["x"] * 1)
+    .attr("class", "data_circle")
+    .attr("fill", d => TYPE2COLOR[d["type"]])    
 
     datagroup
     .selectAll("circle")
@@ -307,6 +315,7 @@ function renderMainFig (Data, mapData) {
     .attr("x", POS1["x"]).attr("y", POS1["y"])
 
     let projection = d3.geoIdentity().fitSize([WIDTH1, HEIGHT1], mapData[0])
+    console.log(projection.scale())
 
     // 记录时间戳
     var time_stamp_list = Object.keys(Data)
