@@ -83,11 +83,11 @@
 
     Promise.all([
       // 向服务器发送GET请求，获取地图数据
-      fetch("http://10.222.148.31:5400/get_map_data").then((response) => {
+      fetch("http://127.0.0.1:5100/get_map_data").then((response) => {
         return response.json();
       }),
       // 向服务器发送GET请求，获取车辆数据
-      fetch("http://10.222.148.31:5400/get_record_data").then((response) => {
+      fetch("http://127.0.0.1:5100/get_record_data").then((response) => {
         return response.json();
       }),
     ]).then((map_record_data) => {
