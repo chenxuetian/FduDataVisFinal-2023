@@ -379,6 +379,7 @@ function renderMainFig (Data, mapData) {
     // 主视图
     let svg = d3.select("#mainsvg")
     let mainfig = svg.append("svg")
+    .attr("id", "mainfig")
     .attr("height", HEIGHT1).attr("width", WIDTH1)
     .attr("x", POS1["x"]).attr("y", POS1["y"])
 
