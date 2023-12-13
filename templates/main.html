@@ -52,7 +52,7 @@
   <script src="https://d3js.org/d3.v6.js"></script>
   <!-- topojson用于地图绘制，是一种对地理拓扑进行编码的方式 -->
   <script src="https://d3js.org/topojson.v1.min.js"></script>
-  <script src="mainfig.js"></script>
+  <script src="{{url_for('static', filename='js/mainfig.js')}}"></script>
   <script>
     let MARGIN = { top: 20, right: 200, left: 200, bottom: 200 };
     let WIDTH = 1920,
@@ -78,34 +78,22 @@
       4: "卡车",
       5: "厢式货车、面包车",
       6: "客车",
-      10: "手推车、三轮车"
-    }
+      10: "手推车、三轮车",
+    };
 
-    // 向服务器发送GET请求，获取数据
-    // fetch("http://127.0.0.1:5400/get_example_data")
-    //   .then((response) => {
-    //     return response.json();
-    //   })
-    //   .then((data) => {
-    //     renderMainFig(data.record_data, data.map_data); // 绘制道路和车辆
-    //   })
-    //   .catch((error) => {
-    //     console.error("Error:", error);
-    //  });
-      
-      Promise.all([
-      d3.json("./data/1.3_traffic/road2-12-9road/boundaryroad_with9road.geojson"),
-      d3.json("./data/1.3_traffic/road2-12-9road/crosswalkroad_with9road.geojson"),
-      d3.json("./data/1.3_traffic/road2-12-9road/laneroad_with9road.geojson"),
-      d3.json("./data/1.3_traffic/road2-12-9road/signalroad_with9road.geojson"),
-      d3.json("./data/1.3_traffic/road2-12-9road/stoplineroad_with9road.geojson"),
-      d3.json("./vehicles_lane_data.json")
-      ]).then( function(loadData)
-      {
-        data = loadData[5]
-        mapData = [loadData[0], loadData[1], loadData[2], loadData[3], loadData[4]]
-        renderMainFig(data, mapData)
-      })
-
+    Promise.all([
+      // 向服务器发送GET请求，获取地图数据
+      fetch("http://10.222.148.31:5400/get_map_data").then((response) => {
+        return response.json();
+      }),
+      // 向服务器发送GET请求，获取车辆数据
+      fetch("http://10.222.148.31:5400/get_record_data").then((response) => {
+        return response.json();
+      }),
+    ]).then((map_record_data) => {
+      map_data = map_record_data[0];
+      record_data = map_record_data[1];
+      renderMainFig(record_data, map_data); // 绘制道路和车辆
+    });
   </script>
 </body>
