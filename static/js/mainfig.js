@@ -49,6 +49,8 @@ function renderMap (svg, mapData, projection) {
     .attr("fill", "#FFFFFF")
     // .attr("transform", `translate(${WIDTH1/2}, ${HEIGHT1/2})`)
     .attr("d", path) 
+
+    // Zoom(svg)
 }
 
 function renderObject (svg, Data, projection, first_time_stamp=840670945) {
@@ -68,6 +70,10 @@ function renderObject (svg, Data, projection, first_time_stamp=840670945) {
         y = cent_y - shape_y / 2
         proj_x = projection([x, y])[0]
         proj_y = projection([x, y])[1]
+
+        proj_cent_x = projection([cent_x, cent_y])[0]
+        proj_cent_y = projection([cent_x, cent_y])[1]
+
         width = shape_x
         height = shape_y
 
@@ -78,7 +84,7 @@ function renderObject (svg, Data, projection, first_time_stamp=840670945) {
         proj_width = _proj_point2[0] - _proj_point1[0]
         proj_height = _proj_point2[1] - _proj_point1[1]
 
-        return [proj_x, proj_y, proj_width, proj_height]
+        return [proj_x, proj_y, proj_width, proj_height, proj_cent_x, proj_cent_y]
     }
 
     let vehicleData = Data[time_stamp].filter(
@@ -94,8 +100,8 @@ function renderObject (svg, Data, projection, first_time_stamp=840670945) {
     .data(vehicleData, d => d["id"])
     .enter()
     .append("rect")
-    .attr("transform", d => `rotate(${d['orientation'] / Math.PI * 180},
-          ${reformulatePos(d)[0]}, ${reformulatePos(d)[1]})`)   
+    .attr("transform", d => `translate(0, 0) rotate(${d['orientation'] / Math.PI * 180},
+          ${reformulatePos(d)[4]}, ${reformulatePos(d)[5]})`)   
     .attr("angle", d => d['orientation'] / Math.PI * 180) 
     .attr("x", d => reformulatePos(d)[0])
     .attr("y", d => reformulatePos(d)[1])
@@ -115,10 +121,10 @@ function renderObject (svg, Data, projection, first_time_stamp=840670945) {
     .attr("class", "data_circle")
     .attr("fill", d => TYPE2COLOR[d["type"]])
 
+    // Zoom(svg)
 }
 
 async function updateObject (svg, Data, projection, new_time_stamp=840671014, transition=true) {
-    
     const datagroup = svg.select("#data_group") 
 
     let new_data = Data[new_time_stamp]
@@ -143,6 +149,10 @@ async function updateObject (svg, Data, projection, new_time_stamp=840671014, tr
         width = shape_x
         height = shape_y
 
+        proj_cent_x = projection([cent_x, cent_y])[0]
+        proj_cent_y = projection([cent_x, cent_y])[1]
+
+
         _point1 = [0,0]
         _point2 = [width, height]
         _proj_point1 = projection(_point1)
@@ -150,7 +160,7 @@ async function updateObject (svg, Data, projection, new_time_stamp=840671014, tr
         proj_width = _proj_point2[0] - _proj_point1[0]
         proj_height = _proj_point2[1] - _proj_point1[1]
 
-        return [proj_x, proj_y, proj_width, proj_height]
+        return [proj_x, proj_y, proj_width, proj_height, proj_cent_x, proj_cent_y]
     }
 
     if (transition) {
@@ -159,6 +169,9 @@ async function updateObject (svg, Data, projection, new_time_stamp=840671014, tr
     else {
         trans = d3.transition().duration(0)  // 无动画效果
     }
+
+    // 获取当前的zoom transform
+    var zoom_transform = svg.select("#zoom_transform_rec").attr("transform")
 
     // 删除元素
     datagroup
@@ -173,8 +186,8 @@ async function updateObject (svg, Data, projection, new_time_stamp=840671014, tr
     .data(vehicleData, d => d["id"])
     .enter()
     .append("rect")
-    .attr("transform", d => `rotate(${d['orientation'] / Math.PI * 180},
-          ${reformulatePos(d)[0]}, ${reformulatePos(d)[1]})`)    
+    .attr("transform", d => zoom_transform + ' ' + `rotate(${d['orientation'] / Math.PI * 180},
+          ${reformulatePos(d)[4]}, ${reformulatePos(d)[5]})`)    
     .attr("angle", d => d['orientation'] / Math.PI * 180)
     .attr("x", d => reformulatePos(d)[0])
     .attr("y", d => reformulatePos(d)[1])
@@ -190,17 +203,16 @@ async function updateObject (svg, Data, projection, new_time_stamp=840671014, tr
     // .attr("transform", d => `rotate(${d['orientation'] / Math.PI * 180},
     //       ${reformulatePos(d)[0]}, ${reformulatePos(d)[1]})`) 
     .transition(trans) 
-    .attrTween("transform", function (d) {
-
-        const rect = d3.select(this)
-        const x_old = Number(rect.attr("x"))
-        const y_old = Number(rect.attr("y"))
+    .attrTween("transform", function (d, i, a) {
+        var rect = d3.select(this)
+        var x_old = Number(rect.attr("x"))
+        var y_old = Number(rect.attr("y"))
         var angle_old = Number(rect.attr("angle"))
-        const x_new = reformulatePos(d)[0]
-        const y_new = reformulatePos(d)[1]
+        var x_new = reformulatePos(d)[0]
+        var y_new = reformulatePos(d)[1]
         var angle_new = d['orientation'] / Math.PI * 180
-        const width = reformulatePos(d)[2]
-        const height = reformulatePos(d)[3]
+        var width = reformulatePos(d)[2]
+        var height = reformulatePos(d)[3]
 
         if (Math.abs(angle_new - angle_old) > 180) {
             if (angle_new > angle_old) {
@@ -216,12 +228,15 @@ async function updateObject (svg, Data, projection, new_time_stamp=840671014, tr
         const interpolateY = d3.interpolateNumber(y_old + height / 2, y_new + height / 2);
         // 计算角度的变化
         const interpolateAngle = d3.interpolateNumber(angle_old, angle_new);
-        
+
         return function (t) {
+            var old_transform = rect.attr('transform')
+            var old_translate = old_transform.slice(old_transform.search("translate"), old_transform.search("rotate"))
+
             const centerX = interpolateX(t);
             const centerY = interpolateY(t);
             const centerAngle = interpolateAngle(t);
-            return `rotate(${centerAngle}, ${centerX}, ${centerY})`;
+            return old_translate + ' ' + `rotate(${centerAngle}, ${centerX}, ${centerY})`;
         }
     })  
     .attr("angle", d => d['orientation'] / Math.PI * 180)
@@ -248,7 +263,8 @@ async function updateObject (svg, Data, projection, new_time_stamp=840671014, tr
     .attr("cy", d => projection([d["position"]["x"], d["position"]["y"]])[1])
     .attr("r", d => d["shape"]["x"] * 1)
     .attr("class", "data_circle")
-    .attr("fill", d => TYPE2COLOR[d["type"]])    
+    .attr("fill", d => TYPE2COLOR[d["type"]])
+    .attr("transform", zoom_transform)
 
     datagroup
     .selectAll("circle")
@@ -265,7 +281,7 @@ async function updateObject (svg, Data, projection, new_time_stamp=840671014, tr
 
 function renderLegend (svg) {
     // 绘制图例
-    const legendWidth = 100
+    const legendWidth = 140
     const legendHeight = 100
     let figLegend = svg.append("g")
     .attr("id", "legend_group")
@@ -292,18 +308,70 @@ function renderLegend (svg) {
     .attr("y", (d,i) => legendPos(d,i)[1])
     .text(d => d)    
     .attr("text-anchor", "start")
-    .attr("font-size", ".5em")
+    .attr("font-size", ".7em")
 
     let legend_color = figLegend.append("g")
     .attr("id", "rect_group")
     .selectAll("rect")
     .data(color).enter()
     .append("rect")
-    .attr("x", (d,i) => legendPos(d,i)[0]-23)
-    .attr("y", (d,i) => legendPos(d,i)[1]-6)
+    .attr("x", (d,i) => legendPos(d,i)[0]-33)
+    .attr("y", (d,i) => legendPos(d,i)[1]-10)
     .attr("width", legendWidth/5)
     .attr("height", (legendHeight-20)/10)
     .attr("fill", d => d)
+}
+
+function Zoom (svg) {
+
+    // 进行缩放功能
+    var zoom = d3.zoom()
+    .scaleExtent([1,8]).on("zoom", zoomed)
+
+    var initialScale = 1
+    var initialTranslate = [0, 0]
+
+    // 创建一个透明的rect对象，用来记录Zoom
+    svg.append("rect")
+    .attr("id", "zoom_transform_rec")
+    .attr("opacity", 0)
+    .attr("transform", `translate(
+        ${initialTranslate[0]}, ${initialTranslate[1]}
+    ) scale(${initialScale})`)
+
+    svg.call(zoom,
+        d3.zoomIdentity.translate(initialTranslate[0], initialTranslate[1]).scale(initialScale))
+    
+    function zoomed (event) {
+        
+        let map_svg = svg.select("#map_group")
+        let data_group = svg.select("#data_group")
+        
+        svg.select("#zoom_transform_rec")
+        .attr("transform", event.transform)
+
+        map_svg.selectAll('path')
+        .attr('transform', event.transform)
+        .attr("stroke-width", function () {return 1/event.transform.k})
+
+        data_group.selectAll('rect')
+        .attr('transform', function () { 
+            var _this = d3.select(this)
+            var old_transform = _this.attr("transform")
+            var old_rotate = old_transform.slice(old_transform.search("rotate"))
+            // console.log(old_rotate)
+            return event.transform.toString() + ' ' + old_rotate
+        })
+        data_group.selectAll('circle')
+        .attr('transform', event.transform)
+    }
+
+    return zoom
+    // zoomed()
+}
+
+function stopZoom(svg) { 
+    svg.on('zoom', null)
 }
 
 function renderMainFig (Data, mapData) {
@@ -323,6 +391,10 @@ function renderMainFig (Data, mapData) {
     var cur_time_stamp_idx = 0
     const time_stamp_len = time_stamp_list.length
     console.log(time_stamp_list)
+
+    // 缩放
+    var zoom = Zoom(mainfig)
+
     // 1. 渲染地图
     renderMap(mainfig, mapData, projection)
     // console.log(Data)
@@ -350,7 +422,7 @@ function renderMainFig (Data, mapData) {
             cur_time_stamp_idx = cur_time_stamp_idx + 1
             cur_time_stamp = time_stamp_list[cur_time_stamp_idx]
             await updateObject(mainfig, Data, projection, cur_time_stamp, true)
-            console.log(cur_time_stamp)
+            console.log("hello")
         }
     })
 }
