@@ -1,21 +1,18 @@
 function render_heatmap(data,projection){
-    // 假设 data 是加载的车辆数据
+    const gridSize = 0.5; 
 
-    // 定义网格大小
-    const gridSize = 0.5; // 根据实际情况调整
 
-    // 初始化聚合数据的对象
     let aggregatedData = {};
 
     // 遍历每个时间戳的数据
     for (let timestamp in data) {
-        // 遍历每个时间戳内的车辆
         data[timestamp].forEach(vehicle => {
             if (vehicle.is_moving >0){
                 let gridX = Math.floor(vehicle.position.x / gridSize)*gridSize;
                 let gridY = Math.floor(vehicle.position.y / gridSize)*gridSize;
                 let gridKey = `${gridX}_${gridY}`;
 
+                // 聚合计数
                 if (!aggregatedData[gridKey]) {
                     aggregatedData[gridKey] = { count: 0, x: gridX, y: gridY };
                 }
@@ -23,11 +20,7 @@ function render_heatmap(data,projection){
             }
         });
     }
-
-    // 将聚合数据转换为数组以便后续处理
     let aggregatedArray = Object.values(aggregatedData);
-
-
     const points = aggregatedArray.map(d => {
         return {
             x: projection([d.x,d.y])[0], 
@@ -35,9 +28,6 @@ function render_heatmap(data,projection){
             value: d.count
         };
     });
-
-    
-
     let svg = d3.select('.mainfig')
     points.forEach((point, index) => {
         // 为每个点创建一个径向渐变
@@ -63,4 +53,3 @@ function render_heatmap(data,projection){
           .style('fill', 'url(#gradient' + index + ')');
     });
 }
-
