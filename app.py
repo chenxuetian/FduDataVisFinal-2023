@@ -27,7 +27,7 @@ def get_sumfig_data():
         "客车",
         "手推车、三轮车",
     ]
-    with open("data_sumfig.json") as f:
+    with open("data_sumfig.json", encoding="utf-8") as f:
         sumfig_data = json.load(f)
     return {"types": types, "data": sumfig_data}
 
