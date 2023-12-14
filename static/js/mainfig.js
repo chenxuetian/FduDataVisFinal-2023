@@ -305,7 +305,9 @@ function renderLegend(svg) {
     .attr("id", "legend_group")
     .attr(
       "transform",
-      `translate(${WIDTH_MAIN - legendWidth - 20}, ${HEIGHT_MAIN - legendHeight - 20})`
+      `translate(${WIDTH_MAIN - legendWidth - 20}, ${
+        HEIGHT_MAIN - legendHeight - 20
+      })`
     );
 
   figLegend
@@ -351,7 +353,7 @@ function renderLegend(svg) {
     .attr("fill", (d) => d);
 }
 
-function Zoom(svg) {
+function Zoom(svg, projection) {
   // 进行缩放功能
   var zoom = d3.zoom().scaleExtent([1, 8]).on("zoom", zoomed);
 
@@ -366,7 +368,7 @@ function Zoom(svg) {
     .attr(
       "transform",
       `translate(
-        ${initialTranslate[0]}, ${initialTranslate[1]}
+        ${initialTranslate[0]},${initialTranslate[1]}
     ) scale(${initialScale})`
     );
 
@@ -401,11 +403,6 @@ function Zoom(svg) {
   }
 
   return zoom;
-  // zoomed()
-}
-
-function stopZoom(svg) {
-  svg.on("zoom", null);
 }
 
 function renderMainFig(Data, mapData) {
@@ -418,18 +415,20 @@ function renderMainFig(Data, mapData) {
     .attr("x", POS_MAIN["x"])
     .attr("y", POS_MAIN["y"]);
 
-  let projection = d3.geoIdentity().fitSize([WIDTH_MAIN, HEIGHT_MAIN], mapData[0]);
-  console.log(projection.scale());
+  let projection = d3
+    .geoIdentity()
+    .fitSize([WIDTH_MAIN, HEIGHT_MAIN], mapData[0]);
+  // console.log(projection.scale());
 
   // 记录时间戳
   var time_stamp_list = Object.keys(Data);
   var cur_time_stamp = time_stamp_list[0];
   var cur_time_stamp_idx = 0;
   const time_stamp_len = time_stamp_list.length;
-  console.log(time_stamp_list);
+  // console.log(time_stamp_list);
 
   // 缩放
-  var zoom = Zoom(mainfig);
+  var zoom = Zoom(mainfig, projection);
 
   // 1. 渲染地图
   renderMap(mainfig, mapData, projection);
@@ -449,18 +448,68 @@ function renderMainFig(Data, mapData) {
     .attr("stroke-width", 3)
     .attr("stroke", "black")
     .attr("width", WIDTH_MAIN)
-    .attr("height", HEIGHT_MAIN)
-    .on("click", async function (event, d) {
-      // console.log("launch")
-      cur_time_stamp_idx = 0;
-      cur_time_stamp = time_stamp_list[cur_time_stamp_idx];
-      updateObject(mainfig, Data, projection, cur_time_stamp, false);
+    .attr("height", HEIGHT_MAIN);
 
-      while (cur_time_stamp_idx < time_stamp_len) {
+  // 控制播放设置
+  var play_flag = false;
+
+  var cur_time_stamp_idx = 0;
+  var cur_time_stamp = time_stamp_list[cur_time_stamp_idx];
+  updateObject(mainfig, Data, projection, cur_time_stamp, false);
+
+  // 标识事件
+  var timestamp2time = function (timestamp) {
+    n = Number(timestamp) * 2 * 1000;
+    return new Date(parseInt(n)).toLocaleString();
+  };
+
+  let time_text = mainfig
+    .append("text")
+    .attr("id", "time_text")
+    .attr("x", 150)
+    .attr("y", 50)
+    .text(timestamp2time(cur_time_stamp));
+
+  // 播放
+  let bottom_rect = mainfig
+    .append("rect")
+    .attr("id", "play_bottom")
+    .attr("x", 50)
+    .attr("y", 30)
+    .attr("width", 50)
+    .attr("height", 30)
+    .attr("fill", "#CCCCCC")
+    .on("click", async function (event, d) {
+      if (!play_flag) {
+        play_flag = true;
+        bottom_text.text("停止播放");
+      } else {
+        play_flag = false;
+        bottom_text.text("播放");
+      }
+      if (cur_time_stamp_idx == time_stamp_len && play_flag) {
+        cur_time_stamp_idx = 0;
+        cur_time_stamp = time_stamp_list[cur_time_stamp_idx];
+        if (typeof cur_time_stamp != "undefined")
+          time_text.text(timestamp2time(cur_time_stamp));
+        await updateObject(mainfig, Data, projection, cur_time_stamp, false);
+      }
+      while (play_flag && cur_time_stamp_idx < time_stamp_len) {
         cur_time_stamp_idx = cur_time_stamp_idx + 1;
         cur_time_stamp = time_stamp_list[cur_time_stamp_idx];
+        if (typeof cur_time_stamp != "undefined")
+          time_text.text(timestamp2time(cur_time_stamp));
         await updateObject(mainfig, Data, projection, cur_time_stamp, true);
-        console.log("hello");
+        console.log(cur_time_stamp);
       }
     });
+
+  let bottom_text = mainfig
+    .append("text")
+    .attr("id", "bottom_text")
+    .attr("x", 75)
+    .attr("y", 50)
+    .text("播放")
+    .attr("font-size", ".7em")
+    .attr("text-anchor", "middle");
 }
