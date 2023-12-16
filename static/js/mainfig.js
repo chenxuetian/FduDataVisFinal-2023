@@ -354,6 +354,11 @@ MainFig.prototype.renderMap = async function (mapData) {
 };
 
 MainFig.prototype.renderObject = function (data) {
+  // 选择模式设为否
+  this.SELECTED_MODE = false;
+  this.SELECTED_ID = "none";
+  // 删除已有车道线
+  this.pathgroup.selectAll(".path").remove();
   // 停止播放
   this.play_flag = false;
   this.bottom_text.text("播放");
@@ -408,6 +413,7 @@ MainFig.prototype.renderObject = function (data) {
     .attr("fill", (d) => TYPE2COLOR[d["type"]])
     .attr("selected", false)
     .attr("id", (d) => d["id"])
+    .attr("opacity", 1)
     .on("mouseover", this.mouseoverEvent)
     .on("mouseout", this.mouseoutEvent)
     .on("click", this.mouseclickEventFactory(data)) //TODO
@@ -426,6 +432,7 @@ MainFig.prototype.renderObject = function (data) {
     .attr("selected", false)
     .attr("transform", zoom_transform)
     .attr("id", (d) => d["id"])
+    .attr("opacity", 1)
     .on("mouseover", this.mouseoverEvent)
     .on("mouseout", this.mouseoutEvent)
     .on("click", this.mouseclickEventFactory(data)) //TODO
