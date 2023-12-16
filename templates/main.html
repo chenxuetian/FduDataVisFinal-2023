@@ -71,7 +71,9 @@
     // 主视图
     const WIDTH_MAIN = (WIDTH - MARGIN.left - MARGIN.right) / 2;
     const HEIGHT_MAIN = (HEIGHT - MARGIN.top - MARGIN.bottom) / 2;
+    const SIZE_MAIN = { width: WIDTH_MAIN, height: HEIGHT_MAIN };
     const POS_MAIN = { x: MARGIN.left, y: MARGIN.top + SIZE_VOL.height };
+    const mainfig = new MainFig(POS_MAIN, SIZE_MAIN);
 
     // heatmap
     const WIDTH_HEAT = (WIDTH - MARGIN.left - MARGIN.right) / 4;
@@ -126,7 +128,23 @@
     ]).then((map_record_data) => {
       map_data = map_record_data[0];
       record_data = map_record_data[1];
-      renderMainFig(record_data, map_data); // 绘制道路和车辆
+
+      mainfig.show(record_data, map_data);
+      // 添加动画
+      let play_bottom = mainfig.bottom_rect;
+      let play_text = mainfig.bottom_text;
+      let startFrame = Object.keys(record_data)[0]; //第一帧
+      play_bottom.on("click", async function (event, d) {
+        if (!mainfig.play_flag) {
+          mainfig.play_flag = true;
+          play_text.text("停止播放");
+          mainfig.play(record_data, startFrame);
+        } else {
+          mainfig.play_flag = false;
+          play_text.text("播放");
+        }
+      });
+
       render_heatmap(record_data, map_data);
     });
   </script>
