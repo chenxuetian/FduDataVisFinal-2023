@@ -1,3 +1,6 @@
+var SELECTED_MODE = false;
+var SELECTED_ID = "none";
+
 const mouseoverEvent = function (event, d) {
   d3.select(this).attr("stroke", "black").attr("stroke-width", 0.2);
   tooltip.style("opacity", 1);
@@ -31,7 +34,7 @@ const mouseoutEvent = function (event, d) {
   tooltip.style("opacity", 0);
 };
 
-function renderMap(mainfig, mapData, projection) {
+async function renderMap(mainfig, mapData, projection) {
   bound_data = mapData[0];
   cross_walk_data = mapData[1];
   laneroad_data = mapData[2];
@@ -137,42 +140,63 @@ function renderObject(mainfig, Data, projection, first_time_stamp = 840670945) {
   let personData = Data[time_stamp].filter((d) => d["type"] === 2);
 
   const mouseclickEvent = function (event, d) {
-    d3.select(this)
-      .attr("stroke", "black")
-      .attr("stroke-width", 0.2)
-      .attr("selected", true);
-    let id = d3.select(this).data()[0]["id"];
-    let idData = cvtIdData(Data, id);
-    let idPosData = idData.map((d) => d["position"]);
-    let pathgroup = mainfig.select("#pathgroup");
-    let zoom_rect = mainfig.select("#zoom_transform_rec");
-    var zoom_transform = zoom_rect.attr("transform");
-    // 清除已有路径
-    pathgroup.selectAll("path").remove();
-    // 生成路径
-    const pathLine = d3
-      .line()
-      .curve(d3.curveBasis)
-      .x((d) => projection([d["x"], d["y"]])[0])
-      .y((d) => projection([d["x"], d["y"]])[1]);
-    pathgroup
-      .append("path")
-      .attr("class", "path")
-      .attr("d", pathLine(idPosData))
-      .attr("transform", zoom_transform)
-      .attr("stroke-width", 0.7)
-      .attr("stroke", "red")
-      .attr("fill", "none");
+    if (!SELECTED_MODE && !(d3.select(this).attr("selected") == "true")) {
+      SELECTED_MODE = true;
+      let id = d3.select(this).data()[0]["id"];
+      SELECTED_ID = id;
+      let idData = cvtIdData(Data, id);
+      let idPosData = idData.map((d) => d["position"]);
+      let pathgroup = mainfig.select("#pathgroup");
+      let zoom_rect = mainfig.select("#zoom_transform_rec");
+      var zoom_transform = zoom_rect.attr("transform");
+      // 加边框显示
+      d3.select(this)
+        .attr("stroke", "black")
+        .attr("stroke-width", 0.2)
+        .attr("selected", true);
+      // 其他的淡化
+      d3.select("#data_group")
+        .selectAll(".data_item")
+        .filter((d) => d["id"] != id)
+        .attr("opacity", 0.25)
+        .attr("selected", false);
+      // 清除已有路径
+      pathgroup.selectAll("path").remove();
+      // 生成路径
+      const pathLine = d3
+        .line()
+        .curve(d3.curveBasis)
+        .x((d) => projection([d["x"], d["y"]])[0])
+        .y((d) => projection([d["x"], d["y"]])[1]);
+      pathgroup
+        .append("path")
+        .attr("class", "path")
+        .attr("d", pathLine(idPosData))
+        .attr("transform", zoom_transform)
+        .attr("stroke-width", 0.7)
+        .attr("stroke", "red")
+        .attr("fill", "none");
+    }
   };
 
   const mousedblclickEvent = function (event, d) {
-    d3.select(this)
-      .attr("stroke", "black")
-      .attr("stroke-width", 0)
-      .attr("selected", false);
-    // 删除路径
-    let pathgroup = mainfig.select("#pathgroup");
-    pathgroup.selectAll("path").remove();
+    // 取消选取模式
+    if (SELECTED_MODE && d3.select(this).attr("selected") == "true") {
+      SELECTED_MODE = false;
+      SELECTED_ID = "none";
+      // 恢复正常
+      d3.select(this)
+        .attr("stroke", "black")
+        .attr("stroke-width", 0)
+        .attr("selected", false);
+      d3.select("#data_group")
+        .selectAll(".data_item")
+        .attr("opacity", 1)
+        .attr("selected", false);
+      // 删除路径
+      let pathgroup = mainfig.select("#pathgroup");
+      pathgroup.selectAll("path").remove();
+    }
   };
 
   datagroup
@@ -190,8 +214,9 @@ function renderObject(mainfig, Data, projection, first_time_stamp = 840670945) {
     .attr("y", (d) => reformulatePos(d)[1])
     .attr("width", (d) => reformulatePos(d)[2])
     .attr("height", (d) => reformulatePos(d)[3])
-    .attr("class", "data_rect")
+    .attr("class", "data_item")
     .attr("fill", (d) => TYPE2COLOR[d["type"]])
+    .attr("selected", false)
     .on("mouseover", mouseoverEvent)
     .on("mouseout", mouseoutEvent)
     .on("click", mouseclickEvent)
@@ -205,8 +230,9 @@ function renderObject(mainfig, Data, projection, first_time_stamp = 840670945) {
     .attr("cx", (d) => projection([d["position"]["x"], d["position"]["y"]])[0])
     .attr("cy", (d) => projection([d["position"]["x"], d["position"]["y"]])[1])
     .attr("r", (d) => d["shape"]["x"] * 1)
-    .attr("class", "data_circle")
+    .attr("class", "data_item")
     .attr("fill", (d) => TYPE2COLOR[d["type"]])
+    .attr("selected", false)
     .on("mouseover", mouseoverEvent)
     .on("mouseout", mouseoutEvent)
     .on("click", mouseclickEvent)
@@ -223,6 +249,20 @@ async function updateObject(
   const datagroup = mainfig.select("#data_group");
 
   let new_data = Data[new_time_stamp];
+
+  // 检查之前被选取的元素是否消失
+  if (!new_data.map((d) => d["id"]).includes(SELECTED_ID)) {
+    SELECTED_MODE = false;
+    SELECTED_ID = "none";
+    // 恢复正常
+    d3.select("#data_group")
+      .selectAll(".data_item")
+      .attr("opacity", 1)
+      .attr("selected", false);
+    // 删除路径
+    let pathgroup = mainfig.select("#pathgroup");
+    pathgroup.selectAll("path").remove();
+  }
 
   let vehicleData = new_data.filter((d) =>
     [1, 3, 4, 5, 6, 10].includes(d["type"])
@@ -256,42 +296,63 @@ async function updateObject(
   };
 
   const mouseclickEvent = function (event, d) {
-    d3.select(this)
-      .attr("stroke", "black")
-      .attr("stroke-width", 0.2)
-      .attr("selected", true);
-    let id = d3.select(this).data()[0]["id"];
-    let idData = cvtIdData(Data, id);
-    let idPosData = idData.map((d) => d["position"]);
-    let pathgroup = mainfig.select("#pathgroup");
-    let zoom_rect = mainfig.select("#zoom_transform_rec");
-    var zoom_transform = zoom_rect.attr("transform");
-    // 清除已有路径
-    pathgroup.selectAll("path").remove();
-    // 生成路径
-    const pathLine = d3
-      .line()
-      .curve(d3.curveBasis)
-      .x((d) => projection([d["x"], d["y"]])[0])
-      .y((d) => projection([d["x"], d["y"]])[1]);
-    pathgroup
-      .append("path")
-      .attr("class", "path")
-      .attr("d", pathLine(idPosData))
-      .attr("transform", zoom_transform)
-      .attr("stroke-width", 0.7)
-      .attr("stroke", "red")
-      .attr("fill", "none");
+    if (!SELECTED_MODE && !(d3.select(this).attr("selected") == "true")) {
+      SELECTED_MODE = true;
+      let id = d3.select(this).data()[0]["id"];
+      SELECTED_ID = id;
+      let idData = cvtIdData(Data, id);
+      let idPosData = idData.map((d) => d["position"]);
+      let pathgroup = mainfig.select("#pathgroup");
+      let zoom_rect = mainfig.select("#zoom_transform_rec");
+      var zoom_transform = zoom_rect.attr("transform");
+      // 加边框显示
+      d3.select(this)
+        .attr("stroke", "black")
+        .attr("stroke-width", 0.2)
+        .attr("selected", true);
+      // 其他的淡化
+      d3.select("#data_group")
+        .selectAll(".data_item")
+        .filter((d) => d["id"] != id)
+        .attr("opacity", 0.25)
+        .attr("selected", false);
+      // 清除已有路径
+      pathgroup.selectAll("path").remove();
+      // 生成路径
+      const pathLine = d3
+        .line()
+        .curve(d3.curveBasis)
+        .x((d) => projection([d["x"], d["y"]])[0])
+        .y((d) => projection([d["x"], d["y"]])[1]);
+      pathgroup
+        .append("path")
+        .attr("class", "path")
+        .attr("d", pathLine(idPosData))
+        .attr("transform", zoom_transform)
+        .attr("stroke-width", 0.7)
+        .attr("stroke", "red")
+        .attr("fill", "none");
+    }
   };
 
   const mousedblclickEvent = function (event, d) {
-    d3.select(this)
-      .attr("stroke", "black")
-      .attr("stroke-width", 0)
-      .attr("selected", false);
-    // 删除路径
-    let pathgroup = mainfig.select("#pathgroup");
-    pathgroup.selectAll("path").remove();
+    // 取消选取模式
+    if (SELECTED_MODE && d3.select(this).attr("selected") == "true") {
+      SELECTED_MODE = false;
+      SELECTED_ID = "none";
+      // 恢复正常
+      d3.select(this)
+        .attr("stroke", "black")
+        .attr("stroke-width", 0)
+        .attr("selected", false);
+      d3.select("#data_group")
+        .selectAll(".data_item")
+        .attr("opacity", 1)
+        .attr("selected", false);
+      // 删除路径
+      let pathgroup = mainfig.select("#pathgroup");
+      pathgroup.selectAll("path").remove();
+    }
   };
 
   if (transition) {
@@ -329,8 +390,10 @@ async function updateObject(
     .attr("y", (d) => reformulatePos(d)[1])
     .attr("width", (d) => reformulatePos(d)[2])
     .attr("height", (d) => reformulatePos(d)[3])
-    .attr("class", "data_rect")
+    .attr("class", "data_item")
     .attr("fill", (d) => TYPE2COLOR[d["type"]])
+    .attr("opacity", SELECTED_MODE ? 0.25 : 1)
+    .attr("selected", false)
     .on("mouseover", mouseoverEvent)
     .on("mouseout", mouseoutEvent)
     .on("click", mouseclickEvent)
@@ -394,7 +457,7 @@ async function updateObject(
     .attr("y", (d) => reformulatePos(d)[1])
     .attr("width", (d) => reformulatePos(d)[2])
     .attr("height", (d) => reformulatePos(d)[3])
-    .attr("class", "data_rect")
+    .attr("class", "data_item")
     .attr("fill", (d) => TYPE2COLOR[d["type"]]);
 
   // 对于行人的数据一模一样
@@ -412,9 +475,11 @@ async function updateObject(
     .attr("cx", (d) => projection([d["position"]["x"], d["position"]["y"]])[0])
     .attr("cy", (d) => projection([d["position"]["x"], d["position"]["y"]])[1])
     .attr("r", (d) => d["shape"]["x"] * 1)
-    .attr("class", "data_circle")
+    .attr("class", "data_item")
     .attr("fill", (d) => TYPE2COLOR[d["type"]])
     .attr("transform", zoom_transform)
+    .attr("opacity", SELECTED_MODE ? 0.25 : 1)
+    .attr("selected", false)
     .on("mouseover", mouseoverEvent)
     .on("mouseout", mouseoutEvent)
     .on("click", mouseclickEvent)
@@ -427,7 +492,7 @@ async function updateObject(
     .attr("cx", (d) => projection([d["position"]["x"], d["position"]["y"]])[0])
     .attr("cy", (d) => projection([d["position"]["x"], d["position"]["y"]])[1])
     .attr("r", (d) => d["shape"]["x"] * 1)
-    .attr("class", "data_circle")
+    .attr("class", "data_item")
     .attr("fill", (d) => TYPE2COLOR[d["type"]]);
 
   await trans.end();
@@ -552,7 +617,7 @@ function Zoom(mainfig, projection) {
   return zoom;
 }
 
-function renderMainFig(Data, mapData) {
+async function renderMainFig(Data, mapData) {
   // 主视图
   const svg = d3.select("#mainsvg");
   const mainfig = svg
@@ -588,7 +653,7 @@ function renderMainFig(Data, mapData) {
   var zoom = Zoom(mainfig, projection);
 
   // 1. 渲染地图
-  renderMap(mainfig, mapData, projection);
+  await renderMap(mainfig, mapData, projection);
   // console.log(Data)
 
   // 2. 绘制车辆
