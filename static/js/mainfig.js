@@ -34,10 +34,10 @@ function MainFig(pos, size) {
 
   // 添加轨道线group
   this.pathgroup = this.fig.append("g").attr("id", "pathgroup");
-  // 添加数据group
-  this.datagroup = this.fig.append("g").attr("id", "datagroup");
   // 添加地图group
   this.mapgroup = this.fig.append("g").attr("id", "mapgroup");
+  // 添加数据group
+  this.datagroup = this.fig.append("g").attr("id", "datagroup");
 
   // 播放相关
   this.play_flag = false;
@@ -94,12 +94,8 @@ function MainFig(pos, size) {
     width = shape_x;
     height = shape_y;
 
-    _point1 = [0, 0];
-    _point2 = [width, height];
-    _proj_point1 = projection(_point1);
-    _proj_point2 = projection(_point2);
-    proj_width = _proj_point2[0] - _proj_point1[0];
-    proj_height = _proj_point2[1] - _proj_point1[1];
+    proj_width = width * projection.scale();
+    proj_height = height * projection.scale();
 
     return [proj_x, proj_y, proj_width, proj_height, proj_cent_x, proj_cent_y];
   };
@@ -373,10 +369,16 @@ MainFig.prototype.renderObject = function (data) {
   const reformulatePos = this.reformulatePos;
   const projection = this.projection;
 
+  // Zoom transform
+  const zoom_transform = this.zoom_transform;
+
   const vehicleData = timeData.filter((d) =>
     [1, 3, 4, 5, 6, 10].includes(d["type"])
   );
   const personData = timeData.filter((d) => d["type"] === 2);
+
+  // 删除所有的已有数据
+  this.datagroup.selectAll(".data_item").remove();
 
   // 渲染数据
   this.datagroup
@@ -384,9 +386,17 @@ MainFig.prototype.renderObject = function (data) {
     .data(vehicleData, (d) => d["id"])
     .enter()
     .append("rect")
+    // .attr(
+    //   "transform",
+    //   (d) => `translate(0, 0) rotate(${(d["orientation"] / Math.PI) * 180},
+    //     ${reformulatePos(d)[4]}, ${reformulatePos(d)[5]})`
+    // )
     .attr(
       "transform",
-      (d) => `translate(0, 0) rotate(${(d["orientation"] / Math.PI) * 180},
+      (d) =>
+        zoom_transform.toString() +
+        " " +
+        `rotate(${(d["orientation"] / Math.PI) * 180},
         ${reformulatePos(d)[4]}, ${reformulatePos(d)[5]})`
     )
     .attr("angle", (d) => (d["orientation"] / Math.PI) * 180)
@@ -397,6 +407,7 @@ MainFig.prototype.renderObject = function (data) {
     .attr("class", "data_item")
     .attr("fill", (d) => TYPE2COLOR[d["type"]])
     .attr("selected", false)
+    .attr("id", (d) => d["id"])
     .on("mouseover", this.mouseoverEvent)
     .on("mouseout", this.mouseoutEvent)
     .on("click", this.mouseclickEventFactory(data)) //TODO
@@ -413,6 +424,8 @@ MainFig.prototype.renderObject = function (data) {
     .attr("class", "data_item")
     .attr("fill", (d) => TYPE2COLOR[d["type"]])
     .attr("selected", false)
+    .attr("transform", zoom_transform)
+    .attr("id", (d) => d["id"])
     .on("mouseover", this.mouseoverEvent)
     .on("mouseout", this.mouseoutEvent)
     .on("click", this.mouseclickEventFactory(data)) //TODO
@@ -486,6 +499,7 @@ MainFig.prototype.updateObject = async function (transition) {
     .attr("fill", (d) => TYPE2COLOR[d["type"]])
     .attr("opacity", self.SELECTED_MODE ? 0.25 : 1)
     .attr("selected", false)
+    .attr("id", (d) => d["id"])
     .on("mouseover", self.mouseoverEvent)
     .on("mouseout", self.mouseoutEvent)
     .on("click", self.mouseclickEventFactory(data)) //TODO
@@ -571,6 +585,7 @@ MainFig.prototype.updateObject = async function (transition) {
     .attr("transform", zoom_transform)
     .attr("opacity", self.SELECTED_MODE ? 0.25 : 1)
     .attr("selected", false)
+    .attr("id", (d) => d["id"])
     .on("mouseover", self.mouseoverEvent)
     .on("mouseout", self.mouseoutEvent)
     .on("click", self.mouseclickEventFactory(data)) //TODO.
@@ -615,5 +630,5 @@ MainFig.prototype.show = async function (data, mapData) {
   // 绘制图例
   await this.renderLegend();
   // 初始化物体
-  this.renderObject(data);
+  await this.renderObject(data);
 };
