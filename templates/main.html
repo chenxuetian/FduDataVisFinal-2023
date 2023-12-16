@@ -53,29 +53,32 @@
   <!-- topojson用于地图绘制，是一种对地理拓扑进行编码的方式 -->
   <script src="https://d3js.org/topojson.v1.min.js"></script>
   <script src="{{url_for('static', filename='js/mainfig.js')}}"></script>
-  <script src="{{url_for('static', filename='js/sumfig.js')}}"></script>
+  <script src="{{url_for('static', filename='js/volfig.js')}}"></script>
   <script src="{{url_for('static', filename='js/heatmap.js')}}"></script>
   <script>
-    let MARGIN = { top: 20, right: 200, left: 200, bottom: 200 };
-    let WIDTH = 1920,
+    const MARGIN = { top: 20, right: 200, left: 200, bottom: 200 };
+    const WIDTH = 1920,
       HEIGHT = 1280;
 
-    // summary视图
-    let WIDTH_SUM = (WIDTH - MARGIN.left - MARGIN.right) / 2;
-    let HEIGHT_SUM = (HEIGHT - MARGIN.top - MARGIN.bottom) / 5;
-    let POS_SUM = { x: MARGIN.left, y: MARGIN.top };
+    // 车流量视图
+    const SIZE_VOL = {
+      width: (WIDTH - MARGIN.left - MARGIN.right) / 2,
+      height: (HEIGHT - MARGIN.top - MARGIN.bottom) / 5,
+    };
+    const POS_VOL = { x: MARGIN.left, y: MARGIN.top };
+    const volfig = new VolumeFig(POS_VOL, SIZE_VOL);
 
     // 主视图
-    let WIDTH_MAIN = (WIDTH - MARGIN.left - MARGIN.right) / 2;
-    let HEIGHT_MAIN = (HEIGHT - MARGIN.top - MARGIN.bottom) / 2;
-    let POS_MAIN = { x: MARGIN.left, y: MARGIN.top + HEIGHT_SUM };
+    const WIDTH_MAIN = (WIDTH - MARGIN.left - MARGIN.right) / 2;
+    const HEIGHT_MAIN = (HEIGHT - MARGIN.top - MARGIN.bottom) / 2;
+    const POS_MAIN = { x: MARGIN.left, y: MARGIN.top + SIZE_VOL.height };
 
     // heatmap
-    let WIDTH_HEAT = (WIDTH - MARGIN.left - MARGIN.right) / 4;
-    let HEIGHT_HEAT = (HEIGHT - MARGIN.top - MARGIN.bottom) / 4;
-    let POS_HEAT = { x: POS_MAIN.x + WIDTH_MAIN, y: POS_MAIN.y };
+    const WIDTH_HEAT = (WIDTH - MARGIN.left - MARGIN.right) / 4;
+    const HEIGHT_HEAT = (HEIGHT - MARGIN.top - MARGIN.bottom) / 4;
+    const POS_HEAT = { x: POS_MAIN.x + WIDTH_MAIN, y: POS_MAIN.y };
 
-    let TYPE2COLOR = {
+    const TYPE2COLOR = {
       1: "#FA8828",
       2: "#419BB0",
       3: "#9FC131",
@@ -84,7 +87,7 @@
       10: "#fe8de5",
     };
 
-    let TYPE = {
+    const TYPE = {
       1: "小型车辆",
       2: "行人",
       3: "非机动车",
@@ -104,12 +107,12 @@
       .attr("class", "tooltip")
       .style("opacity", 0);
 
-    fetch("http://127.0.0.1:5100/get_sumfig_data")
+    fetch("http://127.0.0.1:5100/get_volume_data")
       .then((response) => {
         return response.json();
       })
       .then((data) => {
-        renderSummaryFig(data.types, data.data);
+        volfig.show(data.types, data.data);
       });
     Promise.all([
       // 向服务器发送GET请求，获取地图数据

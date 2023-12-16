@@ -17,8 +17,8 @@ print("================================================================")
 def _get():
     return flask.render_template("main.html")
 
-@app.route('/get_sumfig_data', methods=["GET"])
-def get_sumfig_data():
+@app.route('/get_volume_data', methods=["GET"])
+def get_volume_data():
     types = [
         "小型车辆",
         "行人",
@@ -27,9 +27,9 @@ def get_sumfig_data():
         "客车",
         "手推车、三轮车",
     ]
-    with open("data_sumfig.json", encoding="utf-8") as f:
-        sumfig_data = json.load(f)
-    return {"types": types, "data": sumfig_data}
+    with open("data_volume.json", encoding="utf-8") as f:
+        data_volume = json.load(f)
+    return {"types": types, "data": data_volume}
 
 @app.route('/get_map_data', methods=["GET"])
 def get_map_data():

@@ -1,22 +1,25 @@
-function renderSummaryFig(types, data) {
-  const margin = { top: 50, right: 30, bottom: 50, left: 40 };
-  (width = WIDTH_SUM - margin.left - margin.right),
-    (height = HEIGHT_SUM - margin.top - margin.bottom);
-  let summary_fig = d3
+function VolumeFig(pos, size) {
+  this.x = pos.x;
+  this.y = pos.y;
+  this.margin = { top: 50, right: 30, bottom: 50, left: 40 };
+  this.outerWidth = size.width;
+  this.outerHeight = size.height;
+  this.innerWidth = size.width - this.margin.left - this.margin.right;
+  this.innerHeight = size.height - this.margin.top - this.margin.bottom;
+
+  this.fig = d3
     .select("#mainsvg")
     .append("svg")
-    .attr("id", "summary_svg")
-    .attr("x", POS_SUM["x"])
-    .attr("y", POS_SUM["y"])
-    .attr("width", WIDTH_SUM)
-    .attr("height", HEIGHT_SUM)
+    .attr("id", "volfig")
+    .attr("x", this.x)
+    .attr("y", this.y)
+    .attr("width", this.outerWidth)
+    .attr("height", this.outerHeight)
     .append("g")
-    .attr("transform", `translate(${margin.left}, ${margin.top})`);
+    .attr("transform", `translate(${this.margin.left}, ${this.margin.top})`);
+}
 
-  //////////
-  // GENERAL //
-  //////////
-  const keys = types;
+VolumeFig.prototype.show = function (types, data) {
   data.forEach((d) => {
     d.time = new Date(d.time * 1000);
   });
@@ -24,10 +27,10 @@ function renderSummaryFig(types, data) {
   // color palette
   const color = d3
     .scaleOrdinal()
-    .domain(keys)
+    .domain(types)
     .range(["#FA8828", "#419BB0", "#9FC131", "#a65628", "#984ea3", "#fe8de5"]);
   //stack the data?
-  const stackedData = d3.stack().keys(keys)(data);
+  const stackedData = d3.stack().keys(types)(data);
 
   //////////
   // AXIS //
@@ -38,23 +41,27 @@ function renderSummaryFig(types, data) {
   const xScale = d3
     .scaleTime()
     .domain(d3.extent(data.map((d) => d.time)))
-    .range([0, width])
+    .range([0, this.innerWidth])
     .nice();
-  const xAxis = summary_fig
+  const xAxis = this.fig
     .append("g")
-    .attr("transform", `translate(0, ${height})`)
+    .attr("transform", `translate(0, ${this.innerHeight})`)
     .call(d3.axisBottom(xScale).ticks(18).tickFormat(timeFormat));
-  summary_fig
+  this.fig
     .append("text")
     .attr("text-anchor", "end")
-    .attr("x", width)
-    .attr("y", height + 40)
+    .attr("x", this.innerWidth)
+    .attr("y", this.innerHeight + 40)
     .text("时间");
 
   // Y-axis and label
-  const yScale = d3.scaleLinear().domain([0, 3500]).range([height, 0]).nice();
-  summary_fig.append("g").call(d3.axisLeft(yScale).ticks(7));
-  summary_fig
+  const yScale = d3
+    .scaleLinear()
+    .domain([0, 3500])
+    .range([this.innerHeight, 0])
+    .nice();
+  this.fig.append("g").call(d3.axisLeft(yScale).ticks(7));
+  this.fig
     .append("text")
     .attr("text-anchor", "end")
     .attr("x", 0)
@@ -67,13 +74,13 @@ function renderSummaryFig(types, data) {
   //////////
 
   // Add a clipPath: everything out of this area won't be drawn.
-  const clip = summary_fig
+  const clip = this.fig
     .append("defs")
     .append("svg:clipPath")
     .attr("id", "clip")
     .append("svg:rect")
-    .attr("width", width)
-    .attr("height", height)
+    .attr("width", this.innerWidth)
+    .attr("height", this.innerHeight)
     .attr("x", 0)
     .attr("y", 0);
 
@@ -82,12 +89,12 @@ function renderSummaryFig(types, data) {
     .brushX() // Add the brush feature using the d3.brush function
     .extent([
       [0, 0],
-      [width, height],
+      [this.innerWidth, this.innerHeight],
     ]) // initialise the brush area: start at 0,0 and finishes at width,height: it means I select the whole graph area
     .on("end", updateChart); // Each time the brush selection changes, trigger the 'updateChart' function
 
   // Create the scatter variable: where both the circles and the brush take place
-  const areaChart = summary_fig.append("g").attr("clip-path", "url(#clip)");
+  const areaChart = this.fig.append("g").attr("clip-path", "url(#clip)");
 
   // Area generator
   const area = d3
@@ -166,11 +173,11 @@ function renderSummaryFig(types, data) {
   //////////
 
   const size = 7;
-  summary_fig
+  this.fig
     .selectAll("sum_legend_rect")
-    .data(keys)
+    .data(types)
     .join("rect")
-    .attr("x", width - 50)
+    .attr("x", this.innerWidth - 50)
     .attr("y", function (d, i) {
       return -10 + i * (size + 5);
     }) // 100 is where the first dot appears. 25 is the distance between dots
@@ -182,11 +189,11 @@ function renderSummaryFig(types, data) {
     .on("mouseover", highlight)
     .on("mouseleave", noHighlight);
 
-  summary_fig
+  this.fig
     .selectAll("sum_legend_text")
-    .data(keys)
+    .data(types)
     .join("text")
-    .attr("x", width - 50 + size * 2.2)
+    .attr("x", this.innerWidth - 50 + size * 2.2)
     .attr("y", function (d, i) {
       return -10 + i * (size + 5) + size / 2;
     }) // 100 is where the first dot appears. 25 is the distance between dots
@@ -201,4 +208,4 @@ function renderSummaryFig(types, data) {
     .style("alignment-baseline", "middle")
     .on("mouseover", highlight)
     .on("mouseleave", noHighlight);
-}
+};
