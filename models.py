@@ -28,7 +28,7 @@ class Model:
     def __init__(self):
         print("Read data...")
 
-        self.time_data = util.read_data_pandas(data_dir, id_dir, 10)
+        self.time_data = util.read_data_pandas(data_dir, id_dir, 5)
         
         self.map_data = []
         for road in ["boundary", "crosswalk", "lane", "signal", "stopline"]:
@@ -44,4 +44,4 @@ class Model:
         print("Data prepared.")
 
     def get_data_by_ts(self, ts):
-        return self.time_data.loc[ts:ts+60].groupby("time_meas").apply(lambda group: group.to_dict(orient='records')).to_json()
+        return self.time_data.loc[ts:ts+55].groupby("time_meas").apply(lambda group: group.to_dict(orient='records')).to_dict()

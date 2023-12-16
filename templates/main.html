@@ -69,16 +69,17 @@
     const volfig = new VolumeFig(POS_VOL, SIZE_VOL);
 
     // 主视图
-    const WIDTH_MAIN = (WIDTH - MARGIN.left - MARGIN.right) / 2;
-    const HEIGHT_MAIN = (HEIGHT - MARGIN.top - MARGIN.bottom) / 2;
-    const SIZE_MAIN = { width: WIDTH_MAIN, height: HEIGHT_MAIN };
+    const SIZE_MAIN = {
+      width: (WIDTH - MARGIN.left - MARGIN.right) / 2,
+      height: (HEIGHT - MARGIN.top - MARGIN.bottom) / 2,
+    };
     const POS_MAIN = { x: MARGIN.left, y: MARGIN.top + SIZE_VOL.height };
     const mainfig = new MainFig(POS_MAIN, SIZE_MAIN);
 
     // heatmap
     const WIDTH_HEAT = (WIDTH - MARGIN.left - MARGIN.right) / 4;
     const HEIGHT_HEAT = (HEIGHT - MARGIN.top - MARGIN.bottom) / 4;
-    const POS_HEAT = { x: POS_MAIN.x + WIDTH_MAIN, y: POS_MAIN.y };
+    const POS_HEAT = { x: POS_MAIN.x + SIZE_MAIN.width, y: POS_MAIN.y };
 
     const TYPE2COLOR = {
       1: "#FA8828",
@@ -116,36 +117,16 @@
       .then((data) => {
         volfig.show(data.types, data.data);
       });
-    Promise.all([
-      // 向服务器发送GET请求，获取地图数据
-      fetch("http://127.0.0.1:5100/get_map_data").then((response) => {
-        return response.json();
-      }),
-      // 向服务器发送GET请求，获取车辆数据
-      fetch("http://127.0.0.1:5100/get_record_data").then((response) => {
-        return response.json();
-      }),
-    ]).then((map_record_data) => {
-      map_data = map_record_data[0];
-      record_data = map_record_data[1];
 
-      mainfig.show(record_data, map_data);
-      // 添加动画
-      let play_bottom = mainfig.bottom_rect;
-      let play_text = mainfig.bottom_text;
-      let startFrame = Object.keys(record_data)[0]; //第一帧
-      play_bottom.on("click", async function (event, d) {
-        if (!mainfig.play_flag) {
-          mainfig.play_flag = true;
-          play_text.text("停止播放");
-          mainfig.play(record_data, startFrame);
-        } else {
-          mainfig.play_flag = false;
-          play_text.text("播放");
-        }
+    fetch("http://127.0.0.1:5100/get_init_map_data")
+      .then((response) => {
+        return response.json();
+      })
+      .then((data) => {
+        map_data = data["map_data"];
+        record_data = data["record_data"];
+        mainfig.show(record_data, map_data);
+        // render_heatmap(record_data, map_data);
       });
-
-      render_heatmap(record_data, map_data);
-    });
   </script>
 </body>

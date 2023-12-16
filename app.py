@@ -22,16 +22,17 @@ def _get():
 
 @app.route("/get_data_by_ts", methods=["GET"])
 def get_data_by_ts():
-    ts = int(request.args.get('ts'))
-    return model.get_data_by_ts(ts)
+    ts = int(request.args.get('ts', -1))
+    return json.dumps(model.get_data_by_ts(ts))
 
 @app.route('/get_volume_data', methods=["GET"])
 def get_volume_data():
     return json.dumps({"types": model.used_types, "data": model.volume_data})
 
-@app.route('/get_map_data', methods=["GET"])
-def get_map_data():
-    return json.dumps(model.map_data)
+@app.route('/get_init_map_data', methods=["GET"])
+def get_init_map_data():
+    init_records = model.get_data_by_ts(model.time_data.index.min())
+    return json.dumps({"map_data": model.map_data, "record_data": init_records})
 
 @app.route('/get_record_data', methods=["GET"])
 def get_record_data():
@@ -39,4 +40,4 @@ def get_record_data():
 
 
 if __name__ == "__main__":
-    app.run(host='127.0.0.1', port=5100, use_reloader=True, debug=True)
+    app.run(host='127.0.0.1', port=5100, use_reloader=False, debug=False)

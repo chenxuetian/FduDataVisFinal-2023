@@ -128,35 +128,23 @@ VolumeFig.prototype.show = function (types, data) {
     .attr("y", this.innerHeight + 25)
     .attr("font-size", 15);
 
-  this.fig
-    .on("mousemove", () => {
-      mouseX = d3.pointer(event, this.fig.node())[0];
-      if (mouseX < 0) return;
-      cur_time = xScale.invert(mouseX);
-      if (cur_time.getSeconds() % 10 !== 0) return;
-      cursor_line
-        .attr("x1", mouseX)
-        .attr("x2", mouseX)
-        .style("display", "block");
-      time_rect.attr("x", mouseX - 30);
-      time_text.attr("x", mouseX).text(timeFormatSecond(cur_time));
-    })
-    .on("click", (event, d) => {
-      mouseX = d3.pointer(event, this.fig.node())[0];
-      if (mouseX < 0) return;
-      cur_time = xScale.invert(mouseX);
-      if (cur_time.getSeconds() % 10 !== 0) return;
-      ts = Math.floor(cur_time.getTime() / 1000);
-      console.log(ts);
-      fetch(`http://127.0.0.1:5100/get_data_by_ts?ts=${ts}`)
-        .then((response) => {
-          return response.json();
-        })
-        .then((data) => {
-          console.log(data);
-          // updateObject(mainfig, Data, projection, cur_time_stamp, false);
-        });
-    });
+  this.fig.on("mousemove", () => {
+    mouseX = d3.pointer(event)[0];
+    if (mouseX < 0) return;
+    cur_time = xScale.invert(mouseX);
+    if (cur_time.getSeconds() % 5 !== 0) return;
+    cursor_line.attr("x1", mouseX).attr("x2", mouseX).style("display", "block");
+    time_rect.attr("x", mouseX - 30);
+    time_text.attr("x", mouseX).text(timeFormatSecond(cur_time));
+  });
+  time_text.on("click", (event, d) => {
+    cur_time = xScale.invert(cursor_line.attr("x1"));
+    ts = Math.floor(cur_time.getTime() / 1000);
+    console.log(ts);
+    fetch(`http://127.0.0.1:5100/get_data_by_ts?ts=${ts}`)
+      .then((response) => response.json())
+      .then((data) => mainfig.renderObject(data));
+  });
 
   //////////
   // HIGHLIGHT GROUP //

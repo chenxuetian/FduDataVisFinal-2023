@@ -57,12 +57,25 @@ function MainFig(pos, size) {
     .text("播放")
     .attr("font-size", ".7em")
     .attr("text-anchor", "middle");
+  // 播放按钮
+  this.bottom_rect.on("click", async function (event, d) {
+    if (!self.play_flag) {
+      self.play_flag = true;
+      d3.select("#bottom_text").text("停止");
+      self.play();
+    } else {
+      self.play_flag = false;
+      d3.select("#bottom_text").text("播放");
+    }
+  });
 
-  // 时间戳转换函数
-  this.timestamp2time = function (timestamp) {
-    n = Number(timestamp) * 2 * 1000;
-    return new Date(parseInt(n)).toLocaleString();
-  };
+  this.timeFormat = d3.timeFormat("%Y-%m-%d %H:%M:%S");
+  this.time_text = this.fig
+    .append("text")
+    .attr("id", "time_text")
+    .attr("x", 150)
+    .attr("y", 50);
+
   // 数据投影操作
   this.reformulatePos = function (d) {
     const projection = self.projection;
@@ -211,17 +224,35 @@ function MainFig(pos, size) {
       self.pathgroup.selectAll("path").remove();
     }
   };
+
+  // 添加Zoom
+  var zoom = d3.zoom().scaleExtent([1, 8]).on("zoom", zoomed);
+  this.fig.call(
+    zoom,
+    d3.zoomIdentity
+      .translate(this.initialTranslate[0], this.initialTranslate[1])
+      .scale(this.initialScale)
+  );
+
+  function zoomed(event) {
+    self.zoom_transform = event.transform;
+    self.mapgroup
+      .selectAll("path")
+      .attr("transform", event.transform)
+      .attr("stroke-width", function () {
+        return 1 / event.transform.k;
+      });
+    self.datagroup.selectAll("rect").attr("transform", function () {
+      var _this = d3.select(this);
+      var old_transform = _this.attr("transform");
+      var old_rotate = old_transform.slice(old_transform.search("rotate"));
+      return event.transform.toString() + " " + old_rotate;
+    });
+    self.datagroup.selectAll("circle").attr("transform", event.transform);
+    self.pathgroup.selectAll("path").attr("transform", event.transform);
+  }
 }
 
-//////////
-// TODO //
-//////////
-
-// Others...
-
-//////////
-// Done //
-//////////
 MainFig.prototype.renderLegend = async function () {
   const legendWidth = 140;
   const legendHeight = 100;
@@ -327,9 +358,18 @@ MainFig.prototype.renderMap = async function (mapData) {
 };
 
 MainFig.prototype.renderObject = function (data) {
+  // 停止播放
+  this.play_flag = false;
+  this.bottom_text.text("播放");
+  // 记录数据信息
+  this.record_data = data;
+  this.time_stamp_list = Object.keys(data);
+  this.cur_time_stamp_idx = 0;
+  this.cur_time_stamp = this.time_stamp_list[0];
+  this.time_text.text(this.timeFormat(new Date(this.cur_time_stamp * 1000)));
+
   // 初始化第一帧数据
-  const first_time_stamp = Object.keys(data)[0];
-  const timeData = data[first_time_stamp];
+  const timeData = data[this.cur_time_stamp];
   const reformulatePos = this.reformulatePos;
   const projection = this.projection;
 
@@ -380,15 +420,13 @@ MainFig.prototype.renderObject = function (data) {
 };
 
 // TODO: 这里的data只是用来后面触发器中统计idData的，之后要去掉
-MainFig.prototype.updateObject = async function (
-  data,
-  timeData,
-  transition = true
-) {
+MainFig.prototype.updateObject = async function (transition) {
   var self = this;
   const reformulatePos = this.reformulatePos;
   const projection = this.projection;
   var datagroup = self.datagroup;
+  data = this.record_data;
+  timeData = data[this.cur_time_stamp];
 
   const vehicleData = timeData.filter((d) =>
     [1, 3, 4, 5, 6, 10].includes(d["type"])
@@ -551,64 +589,27 @@ MainFig.prototype.updateObject = async function (
   await trans.end();
 };
 
-MainFig.prototype.play = async function (data, startFrame) {
-  this.cur_time_stamp = startFrame;
-  this.cur_time_stamp_idx = this.time_stamp_list.findIndex(
-    (d) => d == startFrame
-  );
-  await this.updateObject(data, data[startFrame], (transition = false));
-  while (this.play_flag && this.cur_time_stamp_idx < this.time_stamp_len) {
-    this.cur_time_stamp_idx = this.cur_time_stamp_idx + 1;
+MainFig.prototype.play = async function () {
+  await this.updateObject(false);
+  while (
+    this.play_flag &&
+    this.cur_time_stamp_idx < this.time_stamp_list.length - 1
+  ) {
+    this.cur_time_stamp_idx += 1;
     this.cur_time_stamp = this.time_stamp_list[this.cur_time_stamp_idx];
-    if (typeof this.cur_time_stamp != "undefined")
-      this.time_text.text(this.timestamp2time(this.cur_time_stamp));
-    timeData = data[this.cur_time_stamp];
-    await this.updateObject(data, timeData);
-    // console.log(cur_time_stamp);
+    this.time_text.text(this.timeFormat(new Date(this.cur_time_stamp * 1000)));
+    console.log(this.cur_time_stamp, this.cur_time_stamp_idx);
+    await this.updateObject(true);
   }
+  if (this.cur_time_stamp_idx === this.time_stamp_list.length - 1) {
+    this.cur_time_stamp_idx = 0;
+    this.cur_time_stamp = this.time_stamp_list[0];
+  }
+  this.play_flag = false;
+  d3.select("#bottom_text").text("播放");
 };
 
 MainFig.prototype.show = async function (data, mapData) {
-  var self = this;
-  // 记录时间戳
-  this.time_stamp_list = Object.keys(data);
-  this.cur_time_stamp = this.time_stamp_list[0];
-  this.cur_time_stamp_idx = 0;
-  this.time_stamp_len = this.time_stamp_list.length;
-  this.time_text = this.fig
-    .append("text")
-    .attr("id", "time_text")
-    .attr("x", 150)
-    .attr("y", 50)
-    .text(this.timestamp2time(this.cur_time_stamp));
-
-  // 添加Zoom
-  var zoom = d3.zoom().scaleExtent([1, 8]).on("zoom", zoomed);
-  this.fig.call(
-    zoom,
-    d3.zoomIdentity
-      .translate(this.initialTranslate[0], this.initialTranslate[1])
-      .scale(this.initialScale)
-  );
-
-  function zoomed(event) {
-    self.zoom_transform = event.transform;
-    self.mapgroup
-      .selectAll("path")
-      .attr("transform", event.transform)
-      .attr("stroke-width", function () {
-        return 1 / event.transform.k;
-      });
-    self.datagroup.selectAll("rect").attr("transform", function () {
-      var _this = d3.select(this);
-      var old_transform = _this.attr("transform");
-      var old_rotate = old_transform.slice(old_transform.search("rotate"));
-      return event.transform.toString() + " " + old_rotate;
-    });
-    self.datagroup.selectAll("circle").attr("transform", event.transform);
-    self.pathgroup.selectAll("path").attr("transform", event.transform);
-  }
-
   // 绘制地图
   await this.renderMap(mapData);
   // 绘制图例
