@@ -1,11 +1,44 @@
-function renderMap(svg, mapData, projection) {
+const mouseoverEvent = function (event, d) {
+  d3.select(this).attr("stroke", "black").attr("stroke-width", 0.2);
+  tooltip.style("opacity", 1);
+  tooltip
+    .html(
+      "<p>" +
+        `id: ${d["id"]}` +
+        "</p>" +
+        "<p>" +
+        `类型: ${TYPE[d["type"]]}` +
+        "</p>" +
+        "<p>" +
+        `坐标：${d["position"]["x"]}, ${d["position"]["y"]}` +
+        "</p>" +
+        "<p>" +
+        `速度: ${d["velocity"]}`
+    )
+    .style("left", event.pageX + 15 + "px")
+    .style("top", event.pageY - 28 + "px");
+};
+
+const mouseoutEvent = function (event, d) {
+  let this_object = d3.select(this);
+  // console.log(this_object.attr("selected"));
+  if (
+    !this_object.attr("selected") ||
+    this_object.attr("selected") == "false"
+  ) {
+    this_object.attr("stroke-width", 0);
+  }
+  tooltip.style("opacity", 0);
+};
+
+function renderMap(mainfig, mapData, projection) {
   bound_data = mapData[0];
   cross_walk_data = mapData[1];
   laneroad_data = mapData[2];
   signalroad_data = mapData[3];
   stoplinear_data = mapData[4];
 
-  let map_group = svg.append("g").attr("id", "map_group");
+  let map_group = mainfig.append("g").attr("id", "map_group");
   let path = d3.geoPath().projection(projection);
 
   let bounds = bound_data.features;
@@ -49,15 +82,27 @@ function renderMap(svg, mapData, projection) {
     .attr("fill", "#FFFFFF")
     // .attr("transform", `translate(${WIDTH_MAIN/2}, ${HEIGHT_MAIN/2})`)
     .attr("d", path);
-
-  // Zoom(svg)
 }
 
-function renderObject(svg, Data, projection, first_time_stamp = 840670945) {
+function cvtIdData(Data, id) {
+  let recs_for_id = [];
+  var time_stamp_list = Object.keys(Data);
+  time_stamp_list.forEach(function (d, idx) {
+    let one_time_data = Data[d];
+    one_time_data.forEach(function (d, idx) {
+      if (d["id"] == id) {
+        recs_for_id.push(d);
+      }
+    });
+  });
+  return recs_for_id;
+}
+
+function renderObject(mainfig, Data, projection, first_time_stamp = 840670945) {
   // 添加数据
   time_stamp = first_time_stamp;
 
-  let datagroup = svg.append("g").attr("id", "data_group");
+  let datagroup = mainfig.append("g").attr("id", "data_group");
 
   const reformulatePos = function (d) {
     cent_x = d["position"]["x"];
@@ -91,6 +136,45 @@ function renderObject(svg, Data, projection, first_time_stamp = 840670945) {
 
   let personData = Data[time_stamp].filter((d) => d["type"] === 2);
 
+  const mouseclickEvent = function (event, d) {
+    d3.select(this)
+      .attr("stroke", "black")
+      .attr("stroke-width", 0.2)
+      .attr("selected", true);
+    let id = d3.select(this).data()[0]["id"];
+    let idData = cvtIdData(Data, id);
+    let idPosData = idData.map((d) => d["position"]);
+    let pathgroup = mainfig.select("#pathgroup");
+    let zoom_rect = mainfig.select("#zoom_transform_rec");
+    var zoom_transform = zoom_rect.attr("transform");
+    // 清除已有路径
+    pathgroup.selectAll("path").remove();
+    // 生成路径
+    const pathLine = d3
+      .line()
+      .curve(d3.curveBasis)
+      .x((d) => projection([d["x"], d["y"]])[0])
+      .y((d) => projection([d["x"], d["y"]])[1]);
+    pathgroup
+      .append("path")
+      .attr("class", "path")
+      .attr("d", pathLine(idPosData))
+      .attr("transform", zoom_transform)
+      .attr("stroke-width", 0.7)
+      .attr("stroke", "red")
+      .attr("fill", "none");
+  };
+
+  const mousedblclickEvent = function (event, d) {
+    d3.select(this)
+      .attr("stroke", "black")
+      .attr("stroke-width", 0)
+      .attr("selected", false);
+    // 删除路径
+    let pathgroup = mainfig.select("#pathgroup");
+    pathgroup.selectAll("path").remove();
+  };
+
   datagroup
     .selectAll("rect")
     .data(vehicleData, (d) => d["id"])
@@ -107,7 +191,11 @@ function renderObject(svg, Data, projection, first_time_stamp = 840670945) {
     .attr("width", (d) => reformulatePos(d)[2])
     .attr("height", (d) => reformulatePos(d)[3])
     .attr("class", "data_rect")
-    .attr("fill", (d) => TYPE2COLOR[d["type"]]);
+    .attr("fill", (d) => TYPE2COLOR[d["type"]])
+    .on("mouseover", mouseoverEvent)
+    .on("mouseout", mouseoutEvent)
+    .on("click", mouseclickEvent)
+    .on("dblclick", mousedblclickEvent);
 
   datagroup
     .selectAll("circle")
@@ -118,19 +206,21 @@ function renderObject(svg, Data, projection, first_time_stamp = 840670945) {
     .attr("cy", (d) => projection([d["position"]["x"], d["position"]["y"]])[1])
     .attr("r", (d) => d["shape"]["x"] * 1)
     .attr("class", "data_circle")
-    .attr("fill", (d) => TYPE2COLOR[d["type"]]);
-
-  // Zoom(svg)
+    .attr("fill", (d) => TYPE2COLOR[d["type"]])
+    .on("mouseover", mouseoverEvent)
+    .on("mouseout", mouseoutEvent)
+    .on("click", mouseclickEvent)
+    .on("dblclick", mousedblclickEvent);
 }
 
 async function updateObject(
-  svg,
+  mainfig,
   Data,
   projection,
   new_time_stamp = 840671014,
   transition = true
 ) {
-  const datagroup = svg.select("#data_group");
+  const datagroup = mainfig.select("#data_group");
 
   let new_data = Data[new_time_stamp];
 
@@ -165,6 +255,45 @@ async function updateObject(
     return [proj_x, proj_y, proj_width, proj_height, proj_cent_x, proj_cent_y];
   };
 
+  const mouseclickEvent = function (event, d) {
+    d3.select(this)
+      .attr("stroke", "black")
+      .attr("stroke-width", 0.2)
+      .attr("selected", true);
+    let id = d3.select(this).data()[0]["id"];
+    let idData = cvtIdData(Data, id);
+    let idPosData = idData.map((d) => d["position"]);
+    let pathgroup = mainfig.select("#pathgroup");
+    let zoom_rect = mainfig.select("#zoom_transform_rec");
+    var zoom_transform = zoom_rect.attr("transform");
+    // 清除已有路径
+    pathgroup.selectAll("path").remove();
+    // 生成路径
+    const pathLine = d3
+      .line()
+      .curve(d3.curveBasis)
+      .x((d) => projection([d["x"], d["y"]])[0])
+      .y((d) => projection([d["x"], d["y"]])[1]);
+    pathgroup
+      .append("path")
+      .attr("class", "path")
+      .attr("d", pathLine(idPosData))
+      .attr("transform", zoom_transform)
+      .attr("stroke-width", 0.7)
+      .attr("stroke", "red")
+      .attr("fill", "none");
+  };
+
+  const mousedblclickEvent = function (event, d) {
+    d3.select(this)
+      .attr("stroke", "black")
+      .attr("stroke-width", 0)
+      .attr("selected", false);
+    // 删除路径
+    let pathgroup = mainfig.select("#pathgroup");
+    pathgroup.selectAll("path").remove();
+  };
+
   if (transition) {
     trans = d3.transition().duration(2000).ease(d3.easeLinear); // 动画效果
   } else {
@@ -172,7 +301,7 @@ async function updateObject(
   }
 
   // 获取当前的zoom transform
-  var zoom_transform = svg.select("#zoom_transform_rec").attr("transform");
+  var zoom_transform = mainfig.select("#zoom_transform_rec").attr("transform");
 
   // 删除元素
   datagroup
@@ -201,7 +330,11 @@ async function updateObject(
     .attr("width", (d) => reformulatePos(d)[2])
     .attr("height", (d) => reformulatePos(d)[3])
     .attr("class", "data_rect")
-    .attr("fill", (d) => TYPE2COLOR[d["type"]]);
+    .attr("fill", (d) => TYPE2COLOR[d["type"]])
+    .on("mouseover", mouseoverEvent)
+    .on("mouseout", mouseoutEvent)
+    .on("click", mouseclickEvent)
+    .on("dblclick", mousedblclickEvent);
 
   // 其他元素进行调整
   datagroup
@@ -281,7 +414,11 @@ async function updateObject(
     .attr("r", (d) => d["shape"]["x"] * 1)
     .attr("class", "data_circle")
     .attr("fill", (d) => TYPE2COLOR[d["type"]])
-    .attr("transform", zoom_transform);
+    .attr("transform", zoom_transform)
+    .on("mouseover", mouseoverEvent)
+    .on("mouseout", mouseoutEvent)
+    .on("click", mouseclickEvent)
+    .on("dblclick", mousedblclickEvent);
 
   datagroup
     .selectAll("circle")
@@ -296,11 +433,11 @@ async function updateObject(
   await trans.end();
 }
 
-function renderLegend(svg) {
+function renderLegend(mainfig) {
   // 绘制图例
   const legendWidth = 140;
   const legendHeight = 100;
-  let figLegend = svg
+  let figLegend = mainfig
     .append("g")
     .attr("id", "legend_group")
     .attr(
@@ -324,7 +461,7 @@ function renderLegend(svg) {
 
   let legendPos = (d, i) => [
     legendWidth / 5 + 10,
-    12 + i * ((legendHeight - 20) / 6),
+    12 + i * ((legendHeight - 20) / 5),
   ];
   let legend_text = figLegend
     .append("g")
@@ -347,13 +484,13 @@ function renderLegend(svg) {
     .enter()
     .append("rect")
     .attr("x", (d, i) => legendPos(d, i)[0] - 33)
-    .attr("y", (d, i) => legendPos(d, i)[1] - 10)
+    .attr("y", (d, i) => legendPos(d, i)[1] - 7)
     .attr("width", legendWidth / 5)
     .attr("height", (legendHeight - 20) / 10)
     .attr("fill", (d) => d);
 }
 
-function Zoom(svg, projection) {
+function Zoom(mainfig, projection) {
   // 进行缩放功能
   var zoom = d3.zoom().scaleExtent([1, 8]).on("zoom", zoomed);
 
@@ -361,7 +498,7 @@ function Zoom(svg, projection) {
   var initialTranslate = [0, 0];
 
   // 创建一个透明的rect对象，用来记录Zoom
-  svg
+  mainfig
     .append("rect")
     .attr("id", "zoom_transform_rec")
     .attr("opacity", 0)
@@ -370,9 +507,12 @@ function Zoom(svg, projection) {
       `translate(
         ${initialTranslate[0]},${initialTranslate[1]}
     ) scale(${initialScale})`
-    );
+    )
+    .attr("translate_x", initialTranslate[0])
+    .attr("translate_y", initialTranslate[1])
+    .attr("scale", initialScale);
 
-  svg.call(
+  mainfig.call(
     zoom,
     d3.zoomIdentity
       .translate(initialTranslate[0], initialTranslate[1])
@@ -380,10 +520,16 @@ function Zoom(svg, projection) {
   );
 
   function zoomed(event) {
-    let map_svg = svg.select("#map_group");
-    let data_group = svg.select("#data_group");
+    let map_svg = mainfig.select("#map_group");
+    let data_group = mainfig.select("#data_group");
+    let path_group = mainfig.select("#pathgroup");
 
-    svg.select("#zoom_transform_rec").attr("transform", event.transform);
+    mainfig
+      .select("#zoom_transform_rec")
+      .attr("transform", event.transform)
+      .attr("translate_x", event.transform.x)
+      .attr("translate_y", event.transform.y)
+      .attr("scale", event.transform.k);
 
     map_svg
       .selectAll("path")
@@ -400,6 +546,7 @@ function Zoom(svg, projection) {
       return event.transform.toString() + " " + old_rotate;
     });
     data_group.selectAll("circle").attr("transform", event.transform);
+    path_group.selectAll("path").attr("transform", event.transform);
   }
 
   return zoom;
@@ -407,13 +554,14 @@ function Zoom(svg, projection) {
 
 function renderMainFig(Data, mapData) {
   // 主视图
-  let svg = d3.select("#mainsvg");
-  let mainfig = svg
+  const svg = d3.select("#mainsvg");
+  const mainfig = svg
     .append("svg")
     .attr("height", HEIGHT_MAIN)
     .attr("width", WIDTH_MAIN)
     .attr("x", POS_MAIN["x"])
     .attr("y", POS_MAIN["y"]);
+  const pathgroup = mainfig.append("g").attr("id", "pathgroup");
 
   let projection = d3
     .geoIdentity()
@@ -425,7 +573,16 @@ function renderMainFig(Data, mapData) {
   var cur_time_stamp = time_stamp_list[0];
   var cur_time_stamp_idx = 0;
   const time_stamp_len = time_stamp_list.length;
-  // console.log(time_stamp_list);
+
+  // 绘制边框
+  let figBound = mainfig
+    .append("rect")
+    .attr("fill-opacity", "0")
+    .attr("stroke-opacity", 1)
+    .attr("stroke-width", 3)
+    .attr("stroke", "black")
+    .attr("width", WIDTH_MAIN)
+    .attr("height", HEIGHT_MAIN);
 
   // 缩放
   var zoom = Zoom(mainfig, projection);
@@ -439,16 +596,6 @@ function renderMainFig(Data, mapData) {
 
   // 3. 绘制图例
   renderLegend(mainfig);
-
-  // 绘制边框
-  let figBound = mainfig
-    .append("rect")
-    .attr("fill-opacity", "0")
-    .attr("stroke-opacity", 1)
-    .attr("stroke-width", 3)
-    .attr("stroke", "black")
-    .attr("width", WIDTH_MAIN)
-    .attr("height", HEIGHT_MAIN);
 
   // 控制播放设置
   var play_flag = false;
@@ -500,7 +647,7 @@ function renderMainFig(Data, mapData) {
         if (typeof cur_time_stamp != "undefined")
           time_text.text(timestamp2time(cur_time_stamp));
         await updateObject(mainfig, Data, projection, cur_time_stamp, true);
-        console.log(cur_time_stamp);
+        // console.log(cur_time_stamp);
       }
     });
 

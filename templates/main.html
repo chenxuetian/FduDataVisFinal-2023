@@ -6,13 +6,13 @@
 
 <style>
   body {
-    font-family: serif; /* 先尝试楷体，如果没有则回退到serif字体 */
+    font-family: serif;
   }
   /* 提示框 */
   .tooltip {
     position: absolute;
     padding: 7px;
-    font-size: 1.2em;
+    font-size: 0.7em;
     pointer-events: none;
     background: #fff;
     border: 1px solid #ccc;
@@ -80,7 +80,6 @@
       2: "#419BB0",
       3: "#9FC131",
       4: "#a65628",
-      5: "#E3371E",
       6: "#984ea3",
       10: "#fe8de5",
     };
@@ -90,10 +89,21 @@
       2: "行人",
       3: "非机动车",
       4: "卡车",
-      5: "厢式货车、面包车",
       6: "客车",
       10: "手推车、三轮车",
     };
+
+    // Total svg.
+    const svg = d3.select("#mainsvg");
+
+    // Tooltips.
+    const tooltip = d3
+      .select("body")
+      .append("div")
+      .attr("id", "mainfig-tooltip")
+      .attr("class", "tooltip")
+      .style("opacity", 0);
+
     fetch("http://127.0.0.1:5100/get_sumfig_data")
       .then((response) => {
         return response.json();
