@@ -20,6 +20,8 @@ function VolumeFig(pos, size) {
 }
 
 VolumeFig.prototype.show = function (types, data) {
+  const timeFormat = d3.timeFormat("%H:%M");
+  const timeFormatSecond = d3.timeFormat("%H:%M:%S");
   data.forEach((d) => {
     d.time = new Date(d.time * 1000);
   });
@@ -37,7 +39,6 @@ VolumeFig.prototype.show = function (types, data) {
   //////////
 
   // X-axis and label
-  const timeFormat = d3.timeFormat("%H:%M");
   const xScale = d3
     .scaleTime()
     .domain(d3.extent(data.map((d) => d.time)))
@@ -46,7 +47,7 @@ VolumeFig.prototype.show = function (types, data) {
   const xAxis = this.fig
     .append("g")
     .attr("transform", `translate(0, ${this.innerHeight})`)
-    .call(d3.axisBottom(xScale).ticks(18).tickFormat(timeFormat));
+    .call(d3.axisBottom(xScale).ticks(9).tickFormat(timeFormat));
   this.fig
     .append("text")
     .attr("text-anchor", "end")
@@ -70,33 +71,8 @@ VolumeFig.prototype.show = function (types, data) {
     .attr("text-anchor", "start");
 
   //////////
-  // BRUSHING AND CHART //
+  // CHART //
   //////////
-
-  // Add a clipPath: everything out of this area won't be drawn.
-  const clip = this.fig
-    .append("defs")
-    .append("svg:clipPath")
-    .attr("id", "clip")
-    .append("svg:rect")
-    .attr("width", this.innerWidth)
-    .attr("height", this.innerHeight)
-    .attr("x", 0)
-    .attr("y", 0);
-
-  // Add brushing
-  const brush = d3
-    .brushX() // Add the brush feature using the d3.brush function
-    .extent([
-      [0, 0],
-      [this.innerWidth, this.innerHeight],
-    ]) // initialise the brush area: start at 0,0 and finishes at width,height: it means I select the whole graph area
-    .on("end", updateChart); // Each time the brush selection changes, trigger the 'updateChart' function
-
-  // Create the scatter variable: where both the circles and the brush take place
-  const areaChart = this.fig.append("g").attr("clip-path", "url(#clip)");
-
-  // Area generator
   const area = d3
     .area()
     .x(function (d) {
@@ -110,50 +86,77 @@ VolumeFig.prototype.show = function (types, data) {
     });
 
   // Show the areas
-  areaChart
-    .selectAll("mylayers")
+  this.fig
+    .append("g")
+    .attr("id", "areaChart")
+    .selectAll("layers")
     .data(stackedData)
     .join("path")
-    .attr("class", function (d) {
-      return "sum_area " + d.key;
-    })
-    .style("fill", function (d) {
-      return color(d.key);
-    })
+    .attr("class", (d) => "sum_area " + d.key)
+    .style("fill", (d) => color(d.key))
     .attr("d", area);
 
-  // Add the brushing
-  areaChart.append("g").attr("class", "brush").call(brush);
+  //////////
+  // CURSOR Line //
+  //////////
+  var cursor_line = this.fig
+    .append("line")
+    .attr("class", "cursor_line")
+    .attr("y1", 0)
+    .attr("y2", this.innerHeight + 20)
+    .attr("stroke", "grey")
+    .attr("stroke-width", 2)
+    .style("display", "none");
 
-  let idleTimeout;
-  function idled() {
-    idleTimeout = null;
-  }
+  var time_rect = this.fig
+    .append("rect")
+    .attr("class", "time_rect")
+    .attr("x", 0)
+    .attr("y", this.innerHeight + 25 - 5)
+    .attr("rx", 5)
+    .attr("ry", 5)
+    .attr("width", 60)
+    .attr("height", 20)
+    .attr("fill", "grey");
 
-  // A function that update the chart for given boundaries
-  function updateChart(event, d) {
-    extent = event.selection;
+  var time_text = this.fig
+    .append("text")
+    .attr("class", "time_text")
+    .attr("text-anchor", "middle")
+    .attr("alignment-baseline", "hanging")
+    .attr("x", 0)
+    .attr("y", this.innerHeight + 25)
+    .attr("font-size", 15);
 
-    // If no selection, back to initial coordinate. Otherwise, update X axis domain
-    if (!extent) {
-      if (!idleTimeout) return (idleTimeout = setTimeout(idled, 350)); // This allows to wait a little bit
-      xScale.domain(
-        d3.extent(data, function (d) {
-          return d.time;
+  this.fig
+    .on("mousemove", () => {
+      mouseX = d3.pointer(event, this.fig.node())[0];
+      if (mouseX < 0) return;
+      cur_time = xScale.invert(mouseX);
+      if (cur_time.getSeconds() % 10 !== 0) return;
+      cursor_line
+        .attr("x1", mouseX)
+        .attr("x2", mouseX)
+        .style("display", "block");
+      time_rect.attr("x", mouseX - 30);
+      time_text.attr("x", mouseX).text(timeFormatSecond(cur_time));
+    })
+    .on("click", (event, d) => {
+      mouseX = d3.pointer(event, this.fig.node())[0];
+      if (mouseX < 0) return;
+      cur_time = xScale.invert(mouseX);
+      if (cur_time.getSeconds() % 10 !== 0) return;
+      ts = Math.floor(cur_time.getTime() / 1000);
+      console.log(ts);
+      fetch(`http://127.0.0.1:5100/get_data_by_ts?ts=${ts}`)
+        .then((response) => {
+          return response.json();
         })
-      );
-    } else {
-      xScale.domain([xScale.invert(extent[0]), xScale.invert(extent[1])]);
-      areaChart.select(".brush").call(brush.move, null); // This remove the grey brush area as soon as the selection has been done
-    }
-
-    // Update axis and area position
-    xAxis
-      .transition()
-      .duration(1000)
-      .call(d3.axisBottom(xScale).ticks(18).tickFormat(timeFormat));
-    areaChart.selectAll("path").transition().duration(1000).attr("d", area);
-  }
+        .then((data) => {
+          console.log(data);
+          // updateObject(mainfig, Data, projection, cur_time_stamp, false);
+        });
+    });
 
   //////////
   // HIGHLIGHT GROUP //
@@ -183,9 +186,7 @@ VolumeFig.prototype.show = function (types, data) {
     }) // 100 is where the first dot appears. 25 is the distance between dots
     .attr("width", size * 2)
     .attr("height", size)
-    .style("fill", function (d) {
-      return color(d);
-    })
+    .style("fill", (d) => color(d))
     .on("mouseover", highlight)
     .on("mouseleave", noHighlight);
 
@@ -197,12 +198,8 @@ VolumeFig.prototype.show = function (types, data) {
     .attr("y", function (d, i) {
       return -10 + i * (size + 5) + size / 2;
     }) // 100 is where the first dot appears. 25 is the distance between dots
-    .style("fill", function (d) {
-      return color(d);
-    })
-    .text(function (d) {
-      return d;
-    })
+    .style("fill", (d) => color(d))
+    .text((d) => d)
     .attr("font-size", size)
     .attr("text-anchor", "left")
     .style("alignment-baseline", "middle")
