@@ -416,8 +416,14 @@ MainFig.prototype.renderObject = function (data) {
     .attr("opacity", 1)
     .on("mouseover", this.mouseoverEvent)
     .on("mouseout", this.mouseoutEvent)
-    .on("click", this.mouseclickEventFactory(data)) //TODO
-    .on("dblclick", this.mousedblclickEvent);
+    .on("click", function (event, d) {
+      if (!self.SELECTED_MODE) {
+        this.mouseclickEventFactory(data);
+      } else {
+        this.mousedblclickEvent;
+      }
+    }); //TODO
+  // .on("dblclick", this.mousedblclickEvent);
 
   this.datagroup
     .selectAll("circle")
@@ -435,8 +441,14 @@ MainFig.prototype.renderObject = function (data) {
     .attr("opacity", 1)
     .on("mouseover", this.mouseoverEvent)
     .on("mouseout", this.mouseoutEvent)
-    .on("click", this.mouseclickEventFactory(data)) //TODO
-    .on("dblclick", this.mousedblclickEvent);
+    .on("click", function (event, d) {
+      if (!self.SELECTED_MODE) {
+        this.mouseclickEventFactory(data);
+      } else {
+        this.mousedblclickEvent;
+      }
+    });
+  // .on("dblclick", this.mousedblclickEvent);
 };
 
 // TODO: 这里的data只是用来后面触发器中统计idData的，之后要去掉
@@ -509,8 +521,14 @@ MainFig.prototype.updateObject = async function (transition) {
     .attr("id", (d) => d["id"])
     .on("mouseover", self.mouseoverEvent)
     .on("mouseout", self.mouseoutEvent)
-    .on("click", self.mouseclickEventFactory(data)) //TODO
-    .on("dblclick", self.mousedblclickEvent);
+    .on("click", function (event, d) {
+      if (!self.SELECTED_MODE) {
+        this.mouseclickEventFactory(data);
+      } else {
+        this.mousedblclickEvent;
+      }
+    });
+  // .on("dblclick", self.mousedblclickEvent);
 
   // 其他元素进行调整
   datagroup
@@ -595,8 +613,14 @@ MainFig.prototype.updateObject = async function (transition) {
     .attr("id", (d) => d["id"])
     .on("mouseover", self.mouseoverEvent)
     .on("mouseout", self.mouseoutEvent)
-    .on("click", self.mouseclickEventFactory(data)) //TODO.
-    .on("dblclick", self.mousedblclickEvent);
+    .on("click", function (event, d) {
+      if (!self.SELECTED_MODE) {
+        this.mouseclickEventFactory(data);
+      } else {
+        this.mousedblclickEvent;
+      }
+    });
+  // .on("dblclick", self.mousedblclickEvent);
 
   datagroup
     .selectAll("circle")
