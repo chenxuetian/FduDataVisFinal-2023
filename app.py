@@ -13,7 +13,7 @@ app = Flask(__name__)
 # flask_cors: Cross Origin Resource Sharing (CORS), making cross-origin AJAX possible.
 CORS(app)
 
-model = Model()
+model = Model(10)
 print("================================================================")
 
 @app.route('/', methods=["GET"])
@@ -31,8 +31,9 @@ def get_volume_data():
 
 @app.route('/get_init_map_data', methods=["GET"])
 def get_init_map_data():
-    init_records = model.get_data_by_ts(model.time_data.index.min())
-    return json.dumps({"map_data": model.map_data, "record_data": init_records})
+    init_time = model.time_data.index.min()
+    init_records = model.get_data_by_ts(init_time)
+    return json.dumps({"map_data": model.map_data, "cache_data": init_records})
 
 @app.route('/get_record_data', methods=["GET"])
 def get_record_data():
@@ -40,4 +41,4 @@ def get_record_data():
 
 
 if __name__ == "__main__":
-    app.run(host='127.0.0.1', port=5100, use_reloader=False, debug=False)
+    app.run(host='127.0.0.1', port=5100, use_reloader=True, debug=True)
