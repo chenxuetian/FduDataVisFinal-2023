@@ -247,6 +247,21 @@ function MainFig(pos, size) {
     self.datagroup.selectAll("circle").attr("transform", event.transform);
     self.pathgroup.selectAll("path").attr("transform", event.transform);
   }
+
+  this.update_data = async function () {
+    this.record_data = this.cache_data;
+    this.time_stamp_list = Object.keys(this.record_data);
+    this.cur_time_stamp_idx = 0;
+    this.cur_time_stamp = this.time_stamp_list[this.cur_time_stamp_idx];
+    this.time_text.text(this.timeFormat(new Date(this.cur_time_stamp * 1000)));
+    fetch(
+      `http://127.0.0.1:5100/get_data_by_ts?ts=${
+        parseInt(this.cur_time_stamp) + 60
+      }`
+    )
+      .then((response) => response.json())
+      .then((data) => (self.cache_data = data));
+  };
 }
 
 MainFig.prototype.renderLegend = async function () {
@@ -353,19 +368,18 @@ MainFig.prototype.renderMap = async function (mapData) {
     .attr("d", path);
 };
 
-MainFig.prototype.renderObject = function (data) {
+MainFig.prototype.renderObject = async function (data) {
   // 停止播放
   this.play_flag = false;
   this.bottom_text.text("播放");
-  // 记录数据信息
-  this.record_data = data;
-  this.time_stamp_list = Object.keys(data);
-  this.cur_time_stamp_idx = 0;
-  this.cur_time_stamp = this.time_stamp_list[0];
-  this.time_text.text(this.timeFormat(new Date(this.cur_time_stamp * 1000)));
+
+  // 初始化数据信息
+  this.record_data = null;
+  this.cache_data = data;
+  await this.update_data();
 
   // 初始化第一帧数据
-  const timeData = data[this.cur_time_stamp];
+  const timeData = this.record_data[this.cur_time_stamp];
   const reformulatePos = this.reformulatePos;
   const projection = this.projection;
 
@@ -410,7 +424,7 @@ MainFig.prototype.renderObject = function (data) {
     .attr("id", (d) => d["id"])
     .on("mouseover", this.mouseoverEvent)
     .on("mouseout", this.mouseoutEvent)
-    .on("click", this.mouseclickEventFactory(data)) //TODO
+    .on("click", this.mouseclickEventFactory(this.record_data)) //TODO
     .on("dblclick", this.mousedblclickEvent);
 
   this.datagroup
@@ -428,16 +442,17 @@ MainFig.prototype.renderObject = function (data) {
     .attr("id", (d) => d["id"])
     .on("mouseover", this.mouseoverEvent)
     .on("mouseout", this.mouseoutEvent)
-    .on("click", this.mouseclickEventFactory(data)) //TODO
+    .on("click", this.mouseclickEventFactory(this.record_data)) //TODO
     .on("dblclick", this.mousedblclickEvent);
 };
 
-// TODO: 这里的data只是用来后面触发器中统计idData的，之后要去掉
 MainFig.prototype.updateObject = async function (transition) {
   var self = this;
+  console.log(this.cur_time_stamp, this.cur_time_stamp_idx);
   const reformulatePos = this.reformulatePos;
   const projection = this.projection;
   var datagroup = self.datagroup;
+
   data = this.record_data;
   timeData = data[this.cur_time_stamp];
 
@@ -605,30 +620,25 @@ MainFig.prototype.updateObject = async function (transition) {
 };
 
 MainFig.prototype.play = async function () {
-  await this.updateObject(false);
-  while (
-    this.play_flag &&
-    this.cur_time_stamp_idx < this.time_stamp_list.length - 1
-  ) {
+  while (this.play_flag) {
+    // TODO: 无法在00时刻停止
+    if (this.cur_time_stamp_idx === this.time_stamp_list.length - 1) {
+      this.update_data();
+      await this.updateObject(true);
+    }
+    // 更新数据状态
     this.cur_time_stamp_idx += 1;
     this.cur_time_stamp = this.time_stamp_list[this.cur_time_stamp_idx];
     this.time_text.text(this.timeFormat(new Date(this.cur_time_stamp * 1000)));
-    console.log(this.cur_time_stamp, this.cur_time_stamp_idx);
     await this.updateObject(true);
   }
-  if (this.cur_time_stamp_idx === this.time_stamp_list.length - 1) {
-    this.cur_time_stamp_idx = 0;
-    this.cur_time_stamp = this.time_stamp_list[0];
-  }
-  this.play_flag = false;
-  d3.select("#bottom_text").text("播放");
 };
 
-MainFig.prototype.show = async function (data, mapData) {
+MainFig.prototype.show = async function (cache, mapData) {
   // 绘制地图
   await this.renderMap(mapData);
   // 绘制图例
   await this.renderLegend();
   // 初始化物体
-  await this.renderObject(data);
+  this.renderObject(cache);
 };

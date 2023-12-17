@@ -124,8 +124,8 @@
       })
       .then((data) => {
         map_data = data["map_data"];
-        record_data = data["record_data"];
-        mainfig.show(record_data, map_data);
+        cache_data = data["cache_data"];
+        mainfig.show(cache_data, map_data);
         // render_heatmap(record_data, map_data);
       });
   </script>
