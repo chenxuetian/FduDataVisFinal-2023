@@ -1,12 +1,332 @@
-function renderMap(svg, mapData, projection) {
-  bound_data = mapData[0];
-  cross_walk_data = mapData[1];
-  laneroad_data = mapData[2];
-  signalroad_data = mapData[3];
-  stoplinear_data = mapData[4];
+function MainFig(pos, size) {
+  var self = this;
+  this.x = pos.x;
+  this.y = pos.y;
+  this.margin = { top: 50, right: 30, bottom: 50, left: 40 };
+  this.outerWidth = size.width;
+  this.outerHeight = size.height;
+  this.innerWidth = size.width - this.margin.left - this.margin.right;
+  this.innerHeight = size.height - this.margin.top - this.margin.bottom;
 
-  let map_group = svg.append("g").attr("id", "map_group");
-  let path = d3.geoPath().projection(projection);
+  this.fig = d3
+    .select("#mainsvg")
+    .append("svg")
+    .attr("id", "mainfig")
+    .attr("x", this.x)
+    .attr("y", this.y)
+    .attr("width", this.outerWidth)
+    .attr("height", this.outerHeight);
+  this.projection = d3
+    .geoIdentity()
+    .translate([417.4337123993244, 384.6565283477654])
+    .scale(0.5962286483704783); // 等价于下面的函数
+  // .fitSize([this.outerWidth, this.outerHeight], mapData[0]);
+
+  // 绘制边框
+  this.figBound = this.fig
+    .append("rect")
+    .attr("fill-opacity", "0")
+    .attr("stroke-opacity", 1)
+    .attr("stroke-width", 3)
+    .attr("stroke", "black")
+    .attr("width", this.outerWidth)
+    .attr("height", this.outerHeight);
+
+  // 添加轨道线group
+  this.pathgroup = this.fig.append("g").attr("id", "pathgroup");
+  // 添加地图group
+  this.mapgroup = this.fig.append("g").attr("id", "mapgroup");
+  // 添加数据group
+  this.datagroup = this.fig.append("g").attr("id", "datagroup");
+
+  // 播放相关
+  this.play_flag = false;
+  this.bottom_rect = this.fig
+    .append("rect")
+    .attr("id", "play_bottom")
+    .attr("x", 50)
+    .attr("y", 30)
+    .attr("width", 50)
+    .attr("height", 30)
+    .attr("fill", "#CCCCCC");
+  this.bottom_text = this.fig
+    .append("text")
+    .attr("id", "bottom_text")
+    .attr("x", 75)
+    .attr("y", 50)
+    .text("播放")
+    .attr("font-size", ".7em")
+    .attr("text-anchor", "middle");
+  // 播放按钮
+  this.bottom_rect.on("click", async function (event, d) {
+    if (!self.play_flag) {
+      self.play_flag = true;
+      d3.select("#bottom_text").text("停止");
+      self.play();
+    } else {
+      self.play_flag = false;
+      d3.select("#bottom_text").text("播放");
+    }
+  });
+
+  this.timeFormat = d3.timeFormat("%Y-%m-%d %H:%M:%S");
+  this.time_text = this.fig
+    .append("text")
+    .attr("id", "time_text")
+    .attr("x", 150)
+    .attr("y", 50);
+
+  // 数据投影操作
+  this.reformulatePos = function (d) {
+    const projection = self.projection;
+    cent_x = d["position"]["x"];
+    cent_y = d["position"]["y"];
+    shape_x = d["shape"]["x"];
+    shape_y = d["shape"]["y"];
+    x = cent_x - shape_x / 2;
+    y = cent_y - shape_y / 2;
+    proj_x = projection([x, y])[0];
+    proj_y = projection([x, y])[1];
+
+    proj_cent_x = projection([cent_x, cent_y])[0];
+    proj_cent_y = projection([cent_x, cent_y])[1];
+
+    width = shape_x;
+    height = shape_y;
+
+    proj_width = width * projection.scale();
+    proj_height = height * projection.scale();
+
+    return [proj_x, proj_y, proj_width, proj_height, proj_cent_x, proj_cent_y];
+  };
+  // 在data中查询id的记录
+  // TODO: 注意，这个之后要改到后端里面执行
+  this.cvtIdData = function (data, id) {
+    let recs_for_id = [];
+    var time_stamp_list = Object.keys(data);
+    time_stamp_list.forEach(function (d, idx) {
+      let one_time_data = data[d];
+      one_time_data.forEach(function (d, idx) {
+        if (d["id"] == id) {
+          recs_for_id.push(d);
+        }
+      });
+    });
+    return recs_for_id;
+  };
+
+  // 突出显示相关
+  this.SELECTED_MODE = false;
+  this.SELECTED_ID = "none";
+
+  // Zoom相关
+  this.initialScale = 1;
+  this.initialTranslate = [0, 0];
+  this.zoom_transform = `translate(
+    ${this.initialTranslate[0]},${this.initialTranslate[1]}
+  ) scale(${this.initialScale})`;
+
+  // 鼠标事件函数
+  this.mouseoverEvent = function (event, d) {
+    d3.select(this).attr("stroke", "black").attr("stroke-width", 0.2);
+    tooltip.style("opacity", 1);
+    tooltip
+      .html(
+        "<p>" +
+          `id: ${d["id"]}` +
+          "</p>" +
+          "<p>" +
+          `类型: ${TYPE[d["type"]]}` +
+          "</p>" +
+          "<p>" +
+          `坐标：${d["position"]["x"]}, ${d["position"]["y"]}` +
+          "</p>" +
+          "<p>" +
+          `速度: ${d["velocity"]}`
+      )
+      .style("left", event.pageX + 15 + "px")
+      .style("top", event.pageY - 28 + "px");
+  };
+
+  this.mouseoutEvent = function (event, d) {
+    let this_object = d3.select(this);
+    if (
+      !this_object.attr("selected") ||
+      this_object.attr("selected") == "false"
+    ) {
+      this_object.attr("stroke-width", 0);
+    }
+    tooltip.style("opacity", 0);
+  };
+
+  this.mouseclickEventFactory = function (data) {
+    return function (event, d) {
+      if (
+        !self.SELECTED_MODE &&
+        !(d3.select(this).attr("selected") == "true")
+      ) {
+        const id = d3.select(this).data()[0]["id"];
+        const idData = self.cvtIdData(data, id);
+        self.SELECTED_MODE = true;
+        self.SELECTED_ID = id;
+        let idPosData = idData.map((d) => d["position"]);
+        let pathgroup = self.pathgroup;
+        // 加边框显示
+        d3.select(this)
+          .attr("stroke", "black")
+          .attr("stroke-width", 0.2)
+          .attr("selected", true);
+        // 其他的淡化
+        self.datagroup
+          .selectAll(".data_item")
+          .filter((d) => d["id"] != id)
+          .attr("opacity", 0.25)
+          .attr("selected", false);
+        // 清除已有路径
+        pathgroup.selectAll("path").remove();
+        // 生成路径
+        const pathLine = d3
+          .line()
+          .curve(d3.curveBasis)
+          .x((d) => self.projection([d["x"], d["y"]])[0])
+          .y((d) => self.projection([d["x"], d["y"]])[1]);
+        pathgroup
+          .append("path")
+          .attr("class", "path")
+          .attr("d", pathLine(idPosData))
+          .attr("transform", self.zoom_transform)
+          .attr("stroke-width", 0.7)
+          .attr("stroke", "red")
+          .attr("fill", "none");
+      }
+    };
+  };
+
+  this.mousedblclickEvent = function (event, d) {
+    // 取消选取模式
+    if (self.SELECTED_MODE && d3.select(this).attr("selected") == "true") {
+      self.SELECTED_MODE = false;
+      self.SELECTED_ID = "none";
+      // 恢复正常
+      d3.select(this)
+        .attr("stroke", "black")
+        .attr("stroke-width", 0)
+        .attr("selected", false);
+      self.datagroup
+        .selectAll(".data_item")
+        .attr("opacity", 1)
+        .attr("selected", false);
+      // 删除路径
+      self.pathgroup.selectAll("path").remove();
+    }
+  };
+
+  // 添加Zoom
+  var zoom = d3.zoom().scaleExtent([1, 8]).on("zoom", zoomed);
+  this.fig.call(
+    zoom,
+    d3.zoomIdentity
+      .translate(this.initialTranslate[0], this.initialTranslate[1])
+      .scale(this.initialScale)
+  );
+
+  function zoomed(event) {
+    self.zoom_transform = event.transform;
+    self.mapgroup
+      .selectAll("path")
+      .attr("transform", event.transform)
+      .attr("stroke-width", function () {
+        return 1 / event.transform.k;
+      });
+    self.datagroup.selectAll("rect").attr("transform", function () {
+      var _this = d3.select(this);
+      var old_transform = _this.attr("transform");
+      var old_rotate = old_transform.slice(old_transform.search("rotate"));
+      return event.transform.toString() + " " + old_rotate;
+    });
+    self.datagroup.selectAll("circle").attr("transform", event.transform);
+    self.pathgroup.selectAll("path").attr("transform", event.transform);
+  }
+
+  this.update_data = async function () {
+    this.record_data = this.cache_data;
+    this.time_stamp_list = Object.keys(this.record_data);
+    this.cur_time_stamp_idx = 0;
+    this.cur_time_stamp = this.time_stamp_list[this.cur_time_stamp_idx];
+    this.time_text.text(this.timeFormat(new Date(this.cur_time_stamp * 1000)));
+    fetch(
+      `http://127.0.0.1:5100/get_data_by_ts?ts=${
+        parseInt(this.cur_time_stamp) + 60
+      }`
+    )
+      .then((response) => response.json())
+      .then((data) => (self.cache_data = data));
+  };
+}
+
+MainFig.prototype.renderLegend = async function () {
+  const legendWidth = 140;
+  const legendHeight = 100;
+  let figLegend = this.fig
+    .append("g")
+    .attr("id", "legend_group")
+    .attr(
+      "transform",
+      `translate(${this.outerWidth - legendWidth - 20}, ${
+        this.outerHeight - legendHeight - 20
+      })`
+    );
+
+  figLegend
+    .append("rect")
+    .attr("fill-opacity", "0")
+    .attr("stroke-opacity", 1)
+    .attr("stroke-width", 1.5)
+    .attr("stroke", "black")
+    .attr("width", legendWidth)
+    .attr("height", legendHeight);
+
+  const color = Object.values(TYPE2COLOR);
+  const legendText = Object.values(TYPE);
+
+  const legendPos = function (d, i) {
+    return [legendWidth / 5 + 10, 12 + i * ((legendHeight - 20) / 5)];
+  };
+  let legend_text = figLegend
+    .append("g")
+    .attr("id", "text_group")
+    .selectAll("text")
+    .data(legendText)
+    .enter()
+    .append("text")
+    .attr("x", (d, i) => legendPos(d, i)[0])
+    .attr("y", (d, i) => legendPos(d, i)[1])
+    .text((d) => d)
+    .attr("text-anchor", "start")
+    .attr("font-size", ".7em");
+
+  let legend_color = figLegend
+    .append("g")
+    .attr("id", "rect_group")
+    .selectAll("rect")
+    .data(color)
+    .enter()
+    .append("rect")
+    .attr("x", (d, i) => legendPos(d, i)[0] - 33)
+    .attr("y", (d, i) => legendPos(d, i)[1] - 7)
+    .attr("width", legendWidth / 5)
+    .attr("height", (legendHeight - 20) / 10)
+    .attr("fill", (d) => d);
+};
+
+MainFig.prototype.renderMap = async function (mapData) {
+  const bound_data = mapData[0];
+  const cross_walk_data = mapData[1];
+  const laneroad_data = mapData[2];
+  const signalroad_data = mapData[3];
+  const stoplinear_data = mapData[4];
+
+  let path = d3.geoPath().projection(this.projection);
 
   let bounds = bound_data.features;
   let crosswalks = cross_walk_data.features;
@@ -14,7 +334,7 @@ function renderMap(svg, mapData, projection) {
   let signalroads = signalroad_data.features;
   let stoplinears = stoplinear_data.features;
 
-  let boundMap = map_group
+  let boundMap = this.mapgroup
     .selectAll("bound")
     .data(bounds)
     .enter()
@@ -23,10 +343,9 @@ function renderMap(svg, mapData, projection) {
     .attr("stroke", "#777777")
     .attr("stroke-width", 1)
     .attr("fill", "#FFFFFF")
-    // .attr("transform", `translate(${WIDTH_MAIN/2}, ${HEIGHT_MAIN/2})`)
     .attr("d", path);
 
-  let crossWalkMap = map_group
+  let crossWalkMap = this.mapgroup
     .selectAll("crosswalk")
     .data(crosswalks)
     .enter()
@@ -35,10 +354,9 @@ function renderMap(svg, mapData, projection) {
     .attr("stroke", "#CCCCCC")
     .attr("stroke-width", 1)
     .attr("fill", "#FFFFFF")
-    // .attr("transform", `translate(${WIDTH_MAIN/2}, ${HEIGHT_MAIN/2})`)
     .attr("d", path);
 
-  let stopLinearMap = map_group
+  let stopLinearMap = this.mapgroup
     .selectAll("stoplinear")
     .data(stoplinears)
     .enter()
@@ -47,69 +365,69 @@ function renderMap(svg, mapData, projection) {
     .attr("stroke", "#333333")
     .attr("stroke-width", 1)
     .attr("fill", "#FFFFFF")
-    // .attr("transform", `translate(${WIDTH_MAIN/2}, ${HEIGHT_MAIN/2})`)
     .attr("d", path);
+};
 
-  // Zoom(svg)
-}
+MainFig.prototype.renderObject = async function (data) {
+  // 停止播放
+  this.play_flag = false;
+  this.bottom_text.text("播放");
 
-function renderObject(svg, Data, projection, first_time_stamp = 840670945) {
-  // 添加数据
-  time_stamp = first_time_stamp;
+  // 初始化数据信息
+  this.record_data = null;
+  this.cache_data = data;
+  await this.update_data();
 
-  let datagroup = svg.append("g").attr("id", "data_group");
+  // 初始化第一帧数据
+  const timeData = this.record_data[this.cur_time_stamp];
+  const reformulatePos = this.reformulatePos;
+  const projection = this.projection;
 
-  const reformulatePos = function (d) {
-    cent_x = d["position"]["x"];
-    cent_y = d["position"]["y"];
-    shape_x = d["shape"]["x"];
-    shape_y = d["shape"]["y"];
-    x = cent_x - shape_x / 2;
-    y = cent_y - shape_y / 2;
-    proj_x = projection([x, y])[0];
-    proj_y = projection([x, y])[1];
+  // Zoom transform
+  const zoom_transform = this.zoom_transform;
 
-    proj_cent_x = projection([cent_x, cent_y])[0];
-    proj_cent_y = projection([cent_x, cent_y])[1];
-
-    width = shape_x;
-    height = shape_y;
-
-    _point1 = [0, 0];
-    _point2 = [width, height];
-    _proj_point1 = projection(_point1);
-    _proj_point2 = projection(_point2);
-    proj_width = _proj_point2[0] - _proj_point1[0];
-    proj_height = _proj_point2[1] - _proj_point1[1];
-
-    return [proj_x, proj_y, proj_width, proj_height, proj_cent_x, proj_cent_y];
-  };
-
-  let vehicleData = Data[time_stamp].filter((d) =>
+  const vehicleData = timeData.filter((d) =>
     [1, 3, 4, 5, 6, 10].includes(d["type"])
   );
+  const personData = timeData.filter((d) => d["type"] === 2);
 
-  let personData = Data[time_stamp].filter((d) => d["type"] === 2);
+  // 删除所有的已有数据
+  this.datagroup.selectAll(".data_item").remove();
 
-  datagroup
+  // 渲染数据
+  this.datagroup
     .selectAll("rect")
     .data(vehicleData, (d) => d["id"])
     .enter()
     .append("rect")
+    // .attr(
+    //   "transform",
+    //   (d) => `translate(0, 0) rotate(${(d["orientation"] / Math.PI) * 180},
+    //     ${reformulatePos(d)[4]}, ${reformulatePos(d)[5]})`
+    // )
     .attr(
       "transform",
-      (d) => `translate(0, 0) rotate(${(d["orientation"] / Math.PI) * 180},
-          ${reformulatePos(d)[4]}, ${reformulatePos(d)[5]})`
+      (d) =>
+        zoom_transform.toString() +
+        " " +
+        `rotate(${(d["orientation"] / Math.PI) * 180},
+        ${reformulatePos(d)[4]}, ${reformulatePos(d)[5]})`
     )
     .attr("angle", (d) => (d["orientation"] / Math.PI) * 180)
     .attr("x", (d) => reformulatePos(d)[0])
     .attr("y", (d) => reformulatePos(d)[1])
     .attr("width", (d) => reformulatePos(d)[2])
     .attr("height", (d) => reformulatePos(d)[3])
-    .attr("class", "data_rect")
-    .attr("fill", (d) => TYPE2COLOR[d["type"]]);
+    .attr("class", "data_item")
+    .attr("fill", (d) => TYPE2COLOR[d["type"]])
+    .attr("selected", false)
+    .attr("id", (d) => d["id"])
+    .on("mouseover", this.mouseoverEvent)
+    .on("mouseout", this.mouseoutEvent)
+    .on("click", this.mouseclickEventFactory(this.record_data)) //TODO
+    .on("dblclick", this.mousedblclickEvent);
 
-  datagroup
+  this.datagroup
     .selectAll("circle")
     .data(personData, (d) => d["id"])
     .enter()
@@ -117,64 +435,56 @@ function renderObject(svg, Data, projection, first_time_stamp = 840670945) {
     .attr("cx", (d) => projection([d["position"]["x"], d["position"]["y"]])[0])
     .attr("cy", (d) => projection([d["position"]["x"], d["position"]["y"]])[1])
     .attr("r", (d) => d["shape"]["x"] * 1)
-    .attr("class", "data_circle")
-    .attr("fill", (d) => TYPE2COLOR[d["type"]]);
+    .attr("class", "data_item")
+    .attr("fill", (d) => TYPE2COLOR[d["type"]])
+    .attr("selected", false)
+    .attr("transform", zoom_transform)
+    .attr("id", (d) => d["id"])
+    .on("mouseover", this.mouseoverEvent)
+    .on("mouseout", this.mouseoutEvent)
+    .on("click", this.mouseclickEventFactory(this.record_data)) //TODO
+    .on("dblclick", this.mousedblclickEvent);
+};
 
-  // Zoom(svg)
-}
+MainFig.prototype.updateObject = async function (transition) {
+  var self = this;
+  console.log(this.cur_time_stamp, this.cur_time_stamp_idx);
+  const reformulatePos = this.reformulatePos;
+  const projection = this.projection;
+  var datagroup = self.datagroup;
 
-async function updateObject(
-  svg,
-  Data,
-  projection,
-  new_time_stamp = 840671014,
-  transition = true
-) {
-  const datagroup = svg.select("#data_group");
+  data = this.record_data;
+  timeData = data[this.cur_time_stamp];
 
-  let new_data = Data[new_time_stamp];
-
-  let vehicleData = new_data.filter((d) =>
+  const vehicleData = timeData.filter((d) =>
     [1, 3, 4, 5, 6, 10].includes(d["type"])
   );
+  const personData = timeData.filter((d) => d["type"] === 2);
 
-  let personData = new_data.filter((d) => d["type"] === 2);
+  // 获取当前的zoom transform
+  var zoom_transform = self.zoom_transform;
 
-  const reformulatePos = function (d) {
-    cent_x = d["position"]["x"];
-    cent_y = d["position"]["y"];
-    shape_x = d["shape"]["x"];
-    shape_y = d["shape"]["y"];
-    x = cent_x - shape_x / 2;
-    y = cent_y - shape_y / 2;
-    proj_x = projection([x, y])[0];
-    proj_y = projection([x, y])[1];
-    width = shape_x;
-    height = shape_y;
+  // 检查之前被选取的元素是否消失
+  if (!timeData.map((d) => d["id"]).includes(self.SELECTED_ID)) {
+    self.SELECTED_MODE = false;
+    self.SELECTED_ID = "none";
+    // 恢复正常
+    d3.select("#data_group")
+      .selectAll(".data_item")
+      .attr("opacity", 1)
+      .attr("selected", false);
+    // 删除路径
+    self.pathgroup.selectAll("path").remove();
+  }
 
-    proj_cent_x = projection([cent_x, cent_y])[0];
-    proj_cent_y = projection([cent_x, cent_y])[1];
-
-    _point1 = [0, 0];
-    _point2 = [width, height];
-    _proj_point1 = projection(_point1);
-    _proj_point2 = projection(_point2);
-    proj_width = _proj_point2[0] - _proj_point1[0];
-    proj_height = _proj_point2[1] - _proj_point1[1];
-
-    return [proj_x, proj_y, proj_width, proj_height, proj_cent_x, proj_cent_y];
-  };
-
+  // 设置动画效果时间
   if (transition) {
     trans = d3.transition().duration(2000).ease(d3.easeLinear); // 动画效果
   } else {
     trans = d3.transition().duration(0); // 无动画效果
   }
 
-  // 获取当前的zoom transform
-  var zoom_transform = svg.select("#zoom_transform_rec").attr("transform");
-
-  // 删除元素
+  // 对数据进行调整
   datagroup
     .selectAll("rect")
     .data(vehicleData, (d) => d["id"])
@@ -193,15 +503,22 @@ async function updateObject(
         zoom_transform +
         " " +
         `rotate(${(d["orientation"] / Math.PI) * 180},
-          ${reformulatePos(d)[4]}, ${reformulatePos(d)[5]})`
+        ${reformulatePos(d)[4]}, ${reformulatePos(d)[5]})`
     )
     .attr("angle", (d) => (d["orientation"] / Math.PI) * 180)
     .attr("x", (d) => reformulatePos(d)[0])
     .attr("y", (d) => reformulatePos(d)[1])
     .attr("width", (d) => reformulatePos(d)[2])
     .attr("height", (d) => reformulatePos(d)[3])
-    .attr("class", "data_rect")
-    .attr("fill", (d) => TYPE2COLOR[d["type"]]);
+    .attr("class", "data_item")
+    .attr("fill", (d) => TYPE2COLOR[d["type"]])
+    .attr("opacity", self.SELECTED_MODE ? 0.25 : 1)
+    .attr("selected", false)
+    .attr("id", (d) => d["id"])
+    .on("mouseover", self.mouseoverEvent)
+    .on("mouseout", self.mouseoutEvent)
+    .on("click", self.mouseclickEventFactory(data)) //TODO
+    .on("dblclick", self.mousedblclickEvent);
 
   // 其他元素进行调整
   datagroup
@@ -261,10 +578,9 @@ async function updateObject(
     .attr("y", (d) => reformulatePos(d)[1])
     .attr("width", (d) => reformulatePos(d)[2])
     .attr("height", (d) => reformulatePos(d)[3])
-    .attr("class", "data_rect")
+    .attr("class", "data_item")
     .attr("fill", (d) => TYPE2COLOR[d["type"]]);
 
-  // 对于行人的数据一模一样
   datagroup
     .selectAll("circle")
     .data(personData, (d) => d["id"])
@@ -279,9 +595,16 @@ async function updateObject(
     .attr("cx", (d) => projection([d["position"]["x"], d["position"]["y"]])[0])
     .attr("cy", (d) => projection([d["position"]["x"], d["position"]["y"]])[1])
     .attr("r", (d) => d["shape"]["x"] * 1)
-    .attr("class", "data_circle")
+    .attr("class", "data_item")
     .attr("fill", (d) => TYPE2COLOR[d["type"]])
-    .attr("transform", zoom_transform);
+    .attr("transform", zoom_transform)
+    .attr("opacity", self.SELECTED_MODE ? 0.25 : 1)
+    .attr("selected", false)
+    .attr("id", (d) => d["id"])
+    .on("mouseover", self.mouseoverEvent)
+    .on("mouseout", self.mouseoutEvent)
+    .on("click", self.mouseclickEventFactory(data)) //TODO.
+    .on("dblclick", self.mousedblclickEvent);
 
   datagroup
     .selectAll("circle")
@@ -290,177 +613,32 @@ async function updateObject(
     .attr("cx", (d) => projection([d["position"]["x"], d["position"]["y"]])[0])
     .attr("cy", (d) => projection([d["position"]["x"], d["position"]["y"]])[1])
     .attr("r", (d) => d["shape"]["x"] * 1)
-    .attr("class", "data_circle")
+    .attr("class", "data_item")
     .attr("fill", (d) => TYPE2COLOR[d["type"]]);
 
   await trans.end();
-}
+};
 
-function renderLegend(svg) {
-  // 绘制图例
-  const legendWidth = 140;
-  const legendHeight = 100;
-  let figLegend = svg
-    .append("g")
-    .attr("id", "legend_group")
-    .attr(
-      "transform",
-      `translate(${WIDTH_MAIN - legendWidth - 20}, ${HEIGHT_MAIN - legendHeight - 20})`
-    );
-
-  figLegend
-    .append("rect")
-    .attr("fill-opacity", "0")
-    .attr("stroke-opacity", 1)
-    .attr("stroke-width", 1.5)
-    .attr("stroke", "black")
-    .attr("width", legendWidth)
-    .attr("height", legendHeight);
-
-  const color = Object.values(TYPE2COLOR);
-  const legendText = Object.values(TYPE);
-
-  let legendPos = (d, i) => [
-    legendWidth / 5 + 10,
-    12 + i * ((legendHeight - 20) / 6),
-  ];
-  let legend_text = figLegend
-    .append("g")
-    .attr("id", "text_group")
-    .selectAll("text")
-    .data(legendText)
-    .enter()
-    .append("text")
-    .attr("x", (d, i) => legendPos(d, i)[0])
-    .attr("y", (d, i) => legendPos(d, i)[1])
-    .text((d) => d)
-    .attr("text-anchor", "start")
-    .attr("font-size", ".7em");
-
-  let legend_color = figLegend
-    .append("g")
-    .attr("id", "rect_group")
-    .selectAll("rect")
-    .data(color)
-    .enter()
-    .append("rect")
-    .attr("x", (d, i) => legendPos(d, i)[0] - 33)
-    .attr("y", (d, i) => legendPos(d, i)[1] - 10)
-    .attr("width", legendWidth / 5)
-    .attr("height", (legendHeight - 20) / 10)
-    .attr("fill", (d) => d);
-}
-
-function Zoom(svg) {
-  // 进行缩放功能
-  var zoom = d3.zoom().scaleExtent([1, 8]).on("zoom", zoomed);
-
-  var initialScale = 1;
-  var initialTranslate = [0, 0];
-
-  // 创建一个透明的rect对象，用来记录Zoom
-  svg
-    .append("rect")
-    .attr("id", "zoom_transform_rec")
-    .attr("opacity", 0)
-    .attr(
-      "transform",
-      `translate(
-        ${initialTranslate[0]}, ${initialTranslate[1]}
-    ) scale(${initialScale})`
-    );
-
-  svg.call(
-    zoom,
-    d3.zoomIdentity
-      .translate(initialTranslate[0], initialTranslate[1])
-      .scale(initialScale)
-  );
-
-  function zoomed(event) {
-    let map_svg = svg.select("#map_group");
-    let data_group = svg.select("#data_group");
-
-    svg.select("#zoom_transform_rec").attr("transform", event.transform);
-
-    map_svg
-      .selectAll("path")
-      .attr("transform", event.transform)
-      .attr("stroke-width", function () {
-        return 1 / event.transform.k;
-      });
-
-    data_group.selectAll("rect").attr("transform", function () {
-      var _this = d3.select(this);
-      var old_transform = _this.attr("transform");
-      var old_rotate = old_transform.slice(old_transform.search("rotate"));
-      // console.log(old_rotate)
-      return event.transform.toString() + " " + old_rotate;
-    });
-    data_group.selectAll("circle").attr("transform", event.transform);
+MainFig.prototype.play = async function () {
+  while (this.play_flag) {
+    // TODO: 无法在00时刻停止
+    if (this.cur_time_stamp_idx === this.time_stamp_list.length - 1) {
+      this.update_data();
+      await this.updateObject(true);
+    }
+    // 更新数据状态
+    this.cur_time_stamp_idx += 1;
+    this.cur_time_stamp = this.time_stamp_list[this.cur_time_stamp_idx];
+    this.time_text.text(this.timeFormat(new Date(this.cur_time_stamp * 1000)));
+    await this.updateObject(true);
   }
+};
 
-  return zoom;
-  // zoomed()
-}
-
-function stopZoom(svg) {
-  svg.on("zoom", null);
-}
-
-function renderMainFig(Data, mapData) {
-  // 主视图
-  let svg = d3.select("#mainsvg");
-  let mainfig = svg
-    .append("svg")
-    .attr("height", HEIGHT_MAIN)
-    .attr("width", WIDTH_MAIN)
-    .attr("x", POS_MAIN["x"])
-    .attr("y", POS_MAIN["y"]);
-
-  let projection = d3.geoIdentity().fitSize([WIDTH_MAIN, HEIGHT_MAIN], mapData[0]);
-  console.log(projection.scale());
-
-  // 记录时间戳
-  var time_stamp_list = Object.keys(Data);
-  var cur_time_stamp = time_stamp_list[0];
-  var cur_time_stamp_idx = 0;
-  const time_stamp_len = time_stamp_list.length;
-  console.log(time_stamp_list);
-
-  // 缩放
-  var zoom = Zoom(mainfig);
-
-  // 1. 渲染地图
-  renderMap(mainfig, mapData, projection);
-  // console.log(Data)
-
-  // 2. 绘制车辆
-  renderObject(mainfig, Data, projection);
-
-  // 3. 绘制图例
-  renderLegend(mainfig);
-
-  // 绘制边框
-  let figBound = mainfig
-    .append("rect")
-    .attr("fill-opacity", "0")
-    .attr("stroke-opacity", 1)
-    .attr("stroke-width", 3)
-    .attr("stroke", "black")
-    .attr("width", WIDTH_MAIN)
-    .attr("height", HEIGHT_MAIN)
-    .on("click", async function (event, d) {
-      // console.log("launch")
-      cur_time_stamp_idx = 0;
-      cur_time_stamp = time_stamp_list[cur_time_stamp_idx];
-      updateObject(mainfig, Data, projection, cur_time_stamp, false);
-
-      while (cur_time_stamp_idx < time_stamp_len) {
-        cur_time_stamp_idx = cur_time_stamp_idx + 1;
-        cur_time_stamp = time_stamp_list[cur_time_stamp_idx];
-        await updateObject(mainfig, Data, projection, cur_time_stamp, true);
-        console.log("hello");
-      }
-    });
-}
+MainFig.prototype.show = async function (cache, mapData) {
+  // 绘制地图
+  await this.renderMap(mapData);
+  // 绘制图例
+  await this.renderLegend();
+  // 初始化物体
+  this.renderObject(cache);
+};

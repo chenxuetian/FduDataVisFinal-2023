@@ -6,13 +6,13 @@
 
 <style>
   body {
-    font-family: "KaiTi", "楷体", serif; /* 先尝试楷体，如果没有则回退到serif字体 */
+    font-family: serif;
   }
   /* 提示框 */
   .tooltip {
     position: absolute;
     padding: 7px;
-    font-size: 1.2em;
+    font-size: 0.7em;
     pointer-events: none;
     background: #fff;
     border: 1px solid #ccc;
@@ -53,23 +53,29 @@
   <!-- topojson用于地图绘制，是一种对地理拓扑进行编码的方式 -->
   <script src="https://d3js.org/topojson.v1.min.js"></script>
   <script src="{{url_for('static', filename='js/mainfig.js')}}"></script>
-  <script src="{{url_for('static', filename='js/sumfig.js')}}"></script>
+  <script src="{{url_for('static', filename='js/volfig.js')}}"></script>
   <script src="{{url_for('static', filename='js/heatmap.js')}}"></script>
   <script src="{{url_for('static', filename='js/jam_analysis.js')}}"></script>
   <script>
-    let MARGIN = { top: 20, right: 200, left: 200, bottom: 200 };
-    let WIDTH = 1920,
+    const MARGIN = { top: 20, right: 200, left: 200, bottom: 200 };
+    const WIDTH = 1920,
       HEIGHT = 1280;
 
-    // summary视图
-    let WIDTH_SUM = (WIDTH - MARGIN.left - MARGIN.right) / 2;
-    let HEIGHT_SUM = (HEIGHT - MARGIN.top - MARGIN.bottom) / 5;
-    let POS_SUM = { x: MARGIN.left, y: MARGIN.top };
+    // 车流量视图
+    const SIZE_VOL = {
+      width: (WIDTH - MARGIN.left - MARGIN.right) / 2,
+      height: (HEIGHT - MARGIN.top - MARGIN.bottom) / 5,
+    };
+    const POS_VOL = { x: MARGIN.left, y: MARGIN.top };
+    const volfig = new VolumeFig(POS_VOL, SIZE_VOL);
 
     // 主视图
-    let WIDTH_MAIN = (WIDTH - MARGIN.left - MARGIN.right) / 2;
-    let HEIGHT_MAIN = (HEIGHT - MARGIN.top - MARGIN.bottom) / 2;
-    let POS_MAIN = { x: MARGIN.left, y: MARGIN.top + HEIGHT_SUM };
+    const SIZE_MAIN = {
+      width: (WIDTH - MARGIN.left - MARGIN.right) / 2,
+      height: (HEIGHT - MARGIN.top - MARGIN.bottom) / 2,
+    };
+    const POS_MAIN = { x: MARGIN.left, y: MARGIN.top + SIZE_VOL.height };
+    const mainfig = new MainFig(POS_MAIN, SIZE_MAIN);
 
     // heatmap
     let WIDTH_HEAT = (WIDTH - MARGIN.left - MARGIN.right) / 4;
@@ -81,31 +87,41 @@
     let HEIGHT_JAM = (HEIGHT - MARGIN.top - MARGIN.bottom) / 4;
     let POS_JAM= { x: POS_MAIN.x + WIDTH_MAIN, y: POS_MAIN.y+POS_HEAT.y };
 
-    let TYPE2COLOR = {
+    const TYPE2COLOR = {
       1: "#FA8828",
       2: "#419BB0",
       3: "#9FC131",
       4: "#a65628",
-      5: "#E3371E",
       6: "#984ea3",
       10: "#fe8de5",
     };
 
-    let TYPE = {
+    const TYPE = {
       1: "小型车辆",
       2: "行人",
       3: "非机动车",
       4: "卡车",
-      5: "厢式货车、面包车",
       6: "客车",
       10: "手推车、三轮车",
     };
-    fetch("http://127.0.0.1:5100/get_sumfig_data")
+
+    // Total svg.
+    const svg = d3.select("#mainsvg");
+
+    // Tooltips.
+    const tooltip = d3
+      .select("body")
+      .append("div")
+      .attr("id", "mainfig-tooltip")
+      .attr("class", "tooltip")
+      .style("opacity", 0);
+
+    fetch("http://127.0.0.1:5100/get_volume_data")
       .then((response) => {
         return response.json();
       })
       .then((data) => {
-        renderSummaryFig(data.types, data.data);
+        volfig.show(data.types, data.data);
       });
     fetch("http://127.0.0.1:5100/get_jamfig_data")
       .then((response) => {
@@ -114,20 +130,16 @@
       .then((data) => {
         render_jamfig(data);
       });
-    Promise.all([
-      // 向服务器发送GET请求，获取地图数据
-      fetch("http://127.0.0.1:5100/get_map_data").then((response) => {
+
+    fetch("http://127.0.0.1:5100/get_init_map_data")
+      .then((response) => {
         return response.json();
-      }),
-      // 向服务器发送GET请求，获取车辆数据
-      fetch("http://127.0.0.1:5100/get_record_data").then((response) => {
-        return response.json();
-      }),
-    ]).then((map_record_data) => {
-      map_data = map_record_data[0];
-      record_data = map_record_data[1];
-      renderMainFig(record_data, map_data); // 绘制道路和车辆
-      render_heatmap(record_data, map_data);
-    });
+      })
+      .then((data) => {
+        map_data = data["map_data"];
+        cache_data = data["cache_data"];
+        mainfig.show(cache_data, map_data);
+        // render_heatmap(record_data, map_data);
+      });
   </script>
 </body>

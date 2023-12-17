@@ -1,12 +1,17 @@
 import os
 import json
 import pickle
+import numpy as np
+import pandas as pd
 from tqdm import tqdm
 from collections import defaultdict
 
 
 def align_timestamp(timestamp, interval):
-    return round(timestamp / (interval * 1e6)) / (1 / interval)
+    ats = round(timestamp / (interval * 1e6)) / (1 / interval)
+    if interval > 1:
+        ats = int(ats)
+    return ats
 
 
 def merge_records(data_dir, id_dir, intervals):
@@ -76,7 +81,48 @@ def read_data(data_dir, id_dir=None, interval=None):
         all_records.extend(records)
 
     print(f"Successfully read {len(all_records)} records.")
-    return all_records
+    df = pd.DataFrame(all_records)
+    del all_records
+    return df
+
+def read_data_pandas(data_dir, id_dir, interval):
+    assert os.path.exists(os.path.join(id_dir, f"mdata_{interval}.pkl")), f"Merged_data_id file with interval {interval}s does not exist!"
+    with open(os.path.join(id_dir, f"mdata_{interval}.pkl"), 'rb') as f:
+        selected = pickle.load(f)
+    num_records = sum(sum(f_selected) for f_selected in selected)
+
+    data_files = sorted([os.path.join(data_dir, fname) for fname in os.listdir(data_dir) if fname.endswith(".json")])
+    all_records = []
+    with tqdm(total=num_records) as pbar:
+        for fid, data_file in enumerate(data_files):
+            lid = 0
+            with open(data_file) as f:
+                while line := f.readline():
+                    if selected and selected[fid][lid]:
+                        record = json.loads(line)
+                        record["time_meas"] = align_timestamp(record["time_meas"], interval)
+                        record.pop("seq")
+                        record.pop("ms_no")
+                        record["position"] = json.loads(record["position"])
+                        record["shape"] = json.loads(record["shape"])
+                        all_records.append(record)
+                        pbar.update()              
+                    lid += 1
+    assert len(all_records) == num_records
+    print(f"Successfully read {num_records} records.")
+    dtypes = {
+        'id': np.int32, 
+        'is_moving': np.int8, 
+        'position': np.object_, 
+        'shape': np.object_, 
+        'orientation': np.float32, 
+        'velocity': np.float32,
+        'type': np.int8, 
+        'heading': np.float32,
+        "time_meas": np.int32
+    }
+    df = pd.DataFrame(all_records).astype(dtypes).set_index("time_meas").sort_index()
+    return df
 
 
 def add_records(data_dir, interval):
