@@ -31,6 +31,12 @@ def get_sumfig_data():
         sumfig_data = json.load(f)
     return {"types": types, "data": sumfig_data}
 
+@app.route('/get_jamfig_data', methods=["GET"])
+def get_jamfig_data():
+    with open("data_jam.json",encoding='UTF-8') as f:
+        jamfig_data = json.load(f)
+    return jamfig_data
+
 @app.route('/get_map_data', methods=["GET"])
 def get_map_data():
     map_data_path = "data/1.3_traffic/road2-12-9road"

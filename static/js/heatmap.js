@@ -119,7 +119,6 @@ function render_heatmap(data,mapData){
           .attr('stop-color', "red")
           .attr('stop-opacity', 0);
     
-        console.log(1);
         // 绘制使用渐变的圆
         heatmap_svg
             .append('circle')

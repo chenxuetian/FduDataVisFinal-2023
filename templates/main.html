@@ -55,6 +55,7 @@
   <script src="{{url_for('static', filename='js/mainfig.js')}}"></script>
   <script src="{{url_for('static', filename='js/sumfig.js')}}"></script>
   <script src="{{url_for('static', filename='js/heatmap.js')}}"></script>
+  <script src="{{url_for('static', filename='js/jam_analysis.js')}}"></script>
   <script>
     let MARGIN = { top: 20, right: 200, left: 200, bottom: 200 };
     let WIDTH = 1920,
@@ -74,6 +75,11 @@
     let WIDTH_HEAT = (WIDTH - MARGIN.left - MARGIN.right) / 4;
     let HEIGHT_HEAT = (HEIGHT - MARGIN.top - MARGIN.bottom) / 4;
     let POS_HEAT = { x: POS_MAIN.x + WIDTH_MAIN, y: POS_MAIN.y };
+
+    // jam_analysis
+    let WIDTH_JAM = (WIDTH - MARGIN.left - MARGIN.right) / 4;
+    let HEIGHT_JAM = (HEIGHT - MARGIN.top - MARGIN.bottom) / 4;
+    let POS_JAM= { x: POS_MAIN.x + WIDTH_MAIN, y: POS_MAIN.y+POS_HEAT.y };
 
     let TYPE2COLOR = {
       1: "#FA8828",
@@ -100,6 +106,13 @@
       })
       .then((data) => {
         renderSummaryFig(data.types, data.data);
+      });
+    fetch("http://127.0.0.1:5100/get_jamfig_data")
+      .then((response) => {
+        return response.json();
+      })
+      .then((data) => {
+        render_jamfig(data);
       });
     Promise.all([
       // 向服务器发送GET请求，获取地图数据

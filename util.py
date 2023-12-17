@@ -110,3 +110,28 @@ def add_records(data_dir, interval):
         record = {"time": ats} | {types[vtype]: len(vids) for vtype, vids in vtype2vids.items() if vtype not in {-1, 5, 7, 8, 9, 11, 12}}
         records.append(record)
     return records
+
+
+import geopandas as gpd
+from shapely.geometry import Point
+
+def match_lane(position, lane_dir = 'lane_clean/lane_v3.geojson'):
+    """
+    position = dict('x':flaot, 'y':flaot)
+    lane_dir is path for lane data.
+
+    return: (nearest_lane_fid, min_distance ):
+         the nearest lane fid and corresponding distance.s    
+    """
+
+    position_p = Point(position['x'], position['y'])
+    road_data_gdf = gpd.read_file(lane_dir)
+
+    min_distance = float('inf')
+    nearest_lane_fid = None
+    for _, road in road_data_gdf.iterrows():
+        distance = position_p.distance(road.geometry)
+        if distance < min_distance:
+            min_distance = distance
+            nearest_lane_fid = road.fid
+    return nearest_lane_fid, min_distance 
