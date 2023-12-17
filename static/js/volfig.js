@@ -67,7 +67,7 @@ VolumeFig.prototype.show = function (types, data) {
     .attr("text-anchor", "end")
     .attr("x", 0)
     .attr("y", -20)
-    .text("车流量")
+    .text("全时段全区域车流量")
     .attr("text-anchor", "start");
 
   //////////
@@ -97,6 +97,36 @@ VolumeFig.prototype.show = function (types, data) {
     .attr("d", area);
 
   //////////
+  // BRUSH //
+  //////////
+  const brushed = function ({ selection }) {
+    if (selection === null) return;
+    const [time0, time1] = selection.map(xScale.invert);
+    console.log(time0, time1);
+    // 显示时间条
+    time_rect_start.attr("x", xScale(time0) - 30).attr("opacity", 1);
+    time_rect_end.attr("x", xScale(time1) - 30).attr("opacity", 1);
+    time_text_start.attr("x", xScale(time0)).text(timeFormatSecond(time0));
+    time_text_end.attr("x", xScale(time1)).text(timeFormatSecond(time1));
+    // 时间戳设定为第一帧
+    ts = Math.floor(time0.getTime() / 1000);
+    console.log(ts);
+    fetch(`http://127.0.0.1:5100/get_data_by_ts?ts=${ts}`)
+      .then((response) => response.json())
+      .then((data) => mainfig.renderObject(data));
+  };
+
+  var brusher = d3
+    .brushX()
+    .extent([
+      [0, 0],
+      [this.innerWidth, this.innerHeight],
+    ])
+    .on("end", brushed);
+
+  this.fig.append("g").attr("id", "brushgroup").call(brusher);
+
+  //////////
   // CURSOR Line //
   //////////
   var cursor_line = this.fig
@@ -108,7 +138,7 @@ VolumeFig.prototype.show = function (types, data) {
     .attr("stroke-width", 2)
     .style("display", "none");
 
-  var time_rect = this.fig
+  var time_rect_start = this.fig
     .append("rect")
     .attr("class", "time_rect")
     .attr("x", 0)
@@ -117,9 +147,22 @@ VolumeFig.prototype.show = function (types, data) {
     .attr("ry", 5)
     .attr("width", 60)
     .attr("height", 20)
-    .attr("fill", "grey");
+    .attr("fill", "grey")
+    .attr("opacity", 0);
 
-  var time_text = this.fig
+  var time_rect_end = this.fig
+    .append("rect")
+    .attr("class", "time_rect")
+    .attr("x", 0)
+    .attr("y", this.innerHeight + 25 - 5)
+    .attr("rx", 5)
+    .attr("ry", 5)
+    .attr("width", 60)
+    .attr("height", 20)
+    .attr("fill", "grey")
+    .attr("opacity", 0);
+
+  var time_text_start = this.fig
     .append("text")
     .attr("class", "time_text")
     .attr("text-anchor", "middle")
@@ -128,23 +171,32 @@ VolumeFig.prototype.show = function (types, data) {
     .attr("y", this.innerHeight + 25)
     .attr("font-size", 15);
 
-  this.fig.on("mousemove", () => {
-    mouseX = d3.pointer(event)[0];
-    if (mouseX < 0) return;
-    cur_time = xScale.invert(mouseX);
-    if (cur_time.getSeconds() % 5 !== 0) return;
-    cursor_line.attr("x1", mouseX).attr("x2", mouseX).style("display", "block");
-    time_rect.attr("x", mouseX - 30);
-    time_text.attr("x", mouseX).text(timeFormatSecond(cur_time));
-  });
-  time_text.on("click", (event, d) => {
-    cur_time = xScale.invert(cursor_line.attr("x1"));
-    ts = Math.floor(cur_time.getTime() / 1000);
-    console.log(ts);
-    fetch(`http://127.0.0.1:5100/get_data_by_ts?ts=${ts}`)
-      .then((response) => response.json())
-      .then((data) => mainfig.renderObject(data));
-  });
+  var time_text_end = this.fig
+    .append("text")
+    .attr("class", "time_text")
+    .attr("text-anchor", "middle")
+    .attr("alignment-baseline", "hanging")
+    .attr("x", 0)
+    .attr("y", this.innerHeight + 25)
+    .attr("font-size", 15);
+
+  // this.fig.on("mousemove", () => {
+  //   mouseX = d3.pointer(event)[0];
+  //   if (mouseX < 0) return;
+  //   cur_time = xScale.invert(mouseX);
+  //   if (cur_time.getSeconds() % 5 !== 0) return;
+  //   cursor_line.attr("x1", mouseX).attr("x2", mouseX).style("display", "block");
+  //   time_rect.attr("x", mouseX - 30);
+  //   time_text.attr("x", mouseX).text(timeFormatSecond(cur_time));
+  // });
+  // time_text.on("click", (event, d) => {
+  //   cur_time = xScale.invert(cursor_line.attr("x1"));
+  //   ts = Math.floor(cur_time.getTime() / 1000);
+  //   console.log(ts);
+  //   fetch(`http://127.0.0.1:5100/get_data_by_ts?ts=${ts}`)
+  //     .then((response) => response.json())
+  //     .then((data) => mainfig.renderObject(data));
+  // });
 
   //////////
   // HIGHLIGHT GROUP //

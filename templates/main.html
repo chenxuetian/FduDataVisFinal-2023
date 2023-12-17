@@ -55,6 +55,7 @@
   <script src="{{url_for('static', filename='js/mainfig.js')}}"></script>
   <script src="{{url_for('static', filename='js/volfig.js')}}"></script>
   <script src="{{url_for('static', filename='js/heatmap.js')}}"></script>
+  <script src="{{url_for('static', filename='js/idfig.js')}}"></script>
   <script>
     const MARGIN = { top: 20, right: 200, left: 200, bottom: 200 };
     const WIDTH = 1920,
@@ -79,7 +80,16 @@
     // heatmap
     const WIDTH_HEAT = (WIDTH - MARGIN.left - MARGIN.right) / 4;
     const HEIGHT_HEAT = (HEIGHT - MARGIN.top - MARGIN.bottom) / 4;
+    const SIZE_HEAT = { width: WIDTH_HEAT, height: HEIGHT_HEAT };
     const POS_HEAT = { x: POS_MAIN.x + SIZE_MAIN.width, y: POS_MAIN.y };
+
+    // 个人ID视图
+    const SIZE_ID = {
+      width: (WIDTH - MARGIN.left - MARGIN.right) / 4,
+      height: (HEIGHT - MARGIN.top - MARGIN.bottom) / 4,
+    };
+    const POS_ID = { x: POS_HEAT.x, y: POS_HEAT.y + SIZE_HEAT.height };
+    const idfig = new IdFig(POS_ID, SIZE_ID);
 
     const TYPE2COLOR = {
       1: "#FA8828",
@@ -124,8 +134,8 @@
       })
       .then((data) => {
         map_data = data["map_data"];
-        record_data = data["record_data"];
-        mainfig.show(record_data, map_data);
+        cache_data = data["cache_data"];
+        mainfig.show(cache_data, map_data);
         // render_heatmap(record_data, map_data);
       });
   </script>
