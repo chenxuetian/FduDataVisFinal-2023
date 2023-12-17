@@ -78,14 +78,20 @@
     const mainfig = new MainFig(POS_MAIN, SIZE_MAIN);
 
     // heatmap
-    let WIDTH_HEAT = (WIDTH - MARGIN.left - MARGIN.right) / 4;
-    let HEIGHT_HEAT = (HEIGHT - MARGIN.top - MARGIN.bottom) / 4;
-    let POS_HEAT = { x: POS_MAIN.x + WIDTH_MAIN, y: POS_MAIN.y };
+    const SIZE_HEAT = {
+      width: (WIDTH - MARGIN.left - MARGIN.right) / 4,
+      height: (HEIGHT - MARGIN.top - MARGIN.bottom) / 4,
+    };
+    const POS_HEAT = { x: POS_MAIN.x + SIZE_MAIN.width, y: POS_MAIN.y };
+    const heatfig = new HeatFig(POS_HEAT, SIZE_HEAT);
 
     // jam_analysis
-    let WIDTH_JAM = (WIDTH - MARGIN.left - MARGIN.right) / 4;
-    let HEIGHT_JAM = (HEIGHT - MARGIN.top - MARGIN.bottom) / 4;
-    let POS_JAM= { x: POS_MAIN.x + WIDTH_MAIN, y: POS_MAIN.y+POS_HEAT.y };
+    const SIZE_JAM = {
+      width: (WIDTH - MARGIN.left - MARGIN.right) / 4,
+      height: (HEIGHT - MARGIN.top - MARGIN.bottom) / 4,
+    };
+    const POS_JAM= { x: POS_MAIN.x + SIZE_MAIN.width, y: POS_MAIN.y+SIZE_HEAT.height };
+    const jamfig = new JamFig(POS_JAM,SIZE_JAM);
 
     const TYPE2COLOR = {
       1: "#FA8828",
@@ -128,7 +134,7 @@
         return response.json();
       })
       .then((data) => {
-        render_jamfig(data);
+        jamfig.show(data);
       });
 
     fetch("http://127.0.0.1:5100/get_init_map_data")
@@ -139,6 +145,7 @@
         map_data = data["map_data"];
         cache_data = data["cache_data"];
         mainfig.show(cache_data, map_data);
+        heatfig.show(cache_data, map_data);
         // render_heatmap(record_data, map_data);
       });
   </script>

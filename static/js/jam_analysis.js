@@ -1,6 +1,25 @@
-function render_jamfig(data){
+function JamFig(pos,size){
+    this.x = pos.x;
+    this.y = pos.y;
+    this.margin = { top: 15, right: 10, bottom: 20, left: 25 };
+    this.outerWidth = size.width;
+    this.outerHeight = size.height;
+    this.innerWidth = size.width - this.margin.left - this.margin.right;
+    this.innerHeight = size.height - this.margin.top - this.margin.bottom;
 
-    crossing_lane_map = {
+    this.fig = d3
+        .select("#mainsvg")
+        .append("svg")
+        .attr("id", "jamfig")
+        .attr("x", this.x)
+        .attr("y", this.y)
+        .attr("width", this.outerWidth)
+        .attr("height", this.outerHeight);
+
+    this.svg = this.fig.append("g")
+                        .attr("transform", `translate(${this.margin.left}, ${this.margin.top})`);
+
+    this.crossing_lane_map = {
         1:{
             'left':{
                 'in_cross':["78","77","76"],
@@ -140,23 +159,26 @@ function render_jamfig(data){
             }
         },
     }
-
-    let selected_Lanes = [];
-
-    for (const crossing in crossing_lane_map) {
-        for (const direction in crossing_lane_map[crossing]) {
-            selected_Lanes = selected_Lanes.concat(crossing_lane_map[crossing][direction].in_cross);
-            selected_Lanes = selected_Lanes.concat(crossing_lane_map[crossing][direction].out_cross);
+    this.selected_Lanes = [];
+    for (const crossing in this.crossing_lane_map) {
+        for (const direction in this.crossing_lane_map[crossing]) {
+            this.selected_Lanes = this.selected_Lanes.concat(this.crossing_lane_map[crossing][direction].in_cross);
+            // selected_Lanes = selected_Lanes.concat(crossing_lane_map[crossing][direction].out_cross);
         }
     }
 
-    const selectedData = selected_Lanes.reduce((acc, id) => {
+}
+
+JamFig.prototype.show = function (data){
+    
+    const selectedData = this.selected_Lanes.reduce((acc, id) => {
         if (data[id] !== undefined) {
             acc[id] = data[id];
         }
         return acc;
     }, {});
     console.log(selectedData);
+
     let average_len = 10;
     const lanesData = Object.entries(selectedData).map(([laneID, timestamps]) => {
         var queue=[];
@@ -185,74 +207,92 @@ function render_jamfig(data){
 
     console.log(lanesData);
 
-    const margin = { top: 15, right: 10, bottom: 15, left: 25 };
-    const width = WIDTH_JAM - margin.left - margin.right;
-    const height = HEIGHT_JAM - margin.top - margin.bottom;
 
-    let jamfig = d3
-        .select("#mainsvg")
-        .append("svg")
-        .attr("id", "jamfig")
-        .attr("x", POS_JAM["x"])
-        .attr("y", POS_JAM["y"])
-        .attr("width", WIDTH_JAM)
-        .attr("height", HEIGHT_JAM);
-
-    let jamfig_svg = jamfig.append("g")
-                        .attr("transform", `translate(${margin.left}, ${margin.top})`);
+    let jamfig_svg = this.svg;
 
     const timeFormat = d3.timeFormat("%H:%M");
     const xScale = d3.scaleTime()
         .domain(d3.extent(lanesData.flatMap(lane => lane.values), d => d.time))
-        .range([0, width])
+        .range([0, this.innerWidth])
         .nice();
     const xAxis = jamfig_svg
         .append("g")
-        .attr("transform", `translate(0, ${height})`)
+        .attr("transform", `translate(0, ${this.innerHeight})`)
         .call(d3.axisBottom(xScale).ticks(10).tickFormat(timeFormat));
 
     const ySclae = d3.scaleLinear()
         .domain([0, d3.max(lanesData.flatMap(lane => lane.values), d => d.avgSpeed)])
-        .range([height, margin.top+margin.bottom]);
+        .range([this.innerHeight, 0]);
     const yAxis = jamfig_svg
         .append("g")
         .call(d3.axisLeft(ySclae));
 
     const lineGenerator = d3.line()
-        .x(d => xScale(d.time))
-        .y(d => ySclae(d.avgSpeed));
+        .x(d => xScale(d.value.time))
+        .y(d => ySclae(d.value.avgSpeed));
 
     jamfig_svg
         .append("text")
         .attr("text-anchor", "end")
-        .attr("x", width)
-        .attr("y", height + 40)
-        .text("时间");
+        .attr("x", this.innerWidth)
+        .attr("y", this.innerHeight + 8)
+        .text("时间")
+        .style("font-size", "5px");
 
     const colorScale = d3.scaleOrdinal(d3.schemeCategory10)  // 使用 D3 的一个内置颜色方案
         .domain(lanesData.map(d => d.lane));
 
-    const selected_cross = ['1','5'];
+
     
-    for(let cross in selected_cross){
-        for(let direction in crossing_lane_map[cross]){
-            for(let state in crossing_lane_map[cross][direction]){
-                for(var i=0;i<crossing_lane_map[cross][direction][state].length;i++){
-                    let lane_id =  crossing_lane_map[cross][direction][state][i];
-                    if(lane_id in lanesData){
-                        console.log(lanesData[lane_id]);
-                        jamfig_svg.append("path")
-                            .datum(lanesData[lane_id].values)
-                            .attr("fill", "none")
-                            .attr("stroke", colorScale(lane_id)) // 可以为每条线分配不同的颜色
-                            .attr("stroke-width", 1)
-                            .attr("d", lineGenerator);
-                    }
-                    
+    for(let cross in this.crossing_lane_map){
+        for(let direction in this.crossing_lane_map[cross]){
+            let state = 'in_cross';
+            for(var i=0;i<this.crossing_lane_map[cross][direction][state].length;i++){
+                let lane_id =  this.crossing_lane_map[cross][direction][state][i];
+                if(lane_id in lanesData){
+                    console.log(lanesData[lane_id]);
+                    jamfig_svg.append("path")
+                        .datum({id:lane_id, value:lanesData[lane_id].values})
+                        .attr('class','lines')
+                        .attr("fill", "none")
+                        .attr("stroke", colorScale(lane_id)) // 可以为每条线分配不同的颜色
+                        .attr("stroke-width", 1)
+                        .attr("d", lineGenerator);
                 }
+                
             }
+            
         }
-    };
+    }
+
+
+    const crossings = ['1', '2', '3', '4', '5', '6', '7', '8']; // 假设这是您的路口编号列表
+
+    const selector = this.svg.append("select")
+        .attr("id", "crossingSelect");
+
+    selector.selectAll("option")
+        .data(crossings)
+        .enter()
+        .append("option")
+        .text(d => `路口 ${d}`)
+        .attr("value", d => d);
+
+    d3.select('#crossingSelect').on('change', function() {
+        const selectedCrossing = d3.select(this).property('value');
+
+        var selected_Lanes = [];
+        
+        for (const direction in this.crossing_lane_map[selectedCrossing]) {
+            selected_Lanes = selected_Lanes.concat(this.crossing_lane_map[selectedCrossing][direction].in_cross);
+            // selected_Lanes = selected_Lanes.concat(crossing_lane_map[crossing][direction].out_cross);
+        }
+        
+        jamfig_svg.selectAll(".lines"),attr('opacity',d => {
+            if(d.id in selected_Lanes ) return 1;
+            else return 0;
+        })
+    });
     // lanesData.forEach(laneData => {
     //     jamfig_svg.append("path")
     //       .datum(laneData.values)
