@@ -37,7 +37,7 @@ def get_init_map_data():
 
 @app.route('/get_jamfig_data', methods=["GET"])
 def get_jamfig_data():
-    with open("data_jam.json",encoding='UTF-8') as f:
+    with open("data_jam_10_processed.json",encoding='UTF-8') as f:
         jamfig_data = json.load(f)
     return jamfig_data
 

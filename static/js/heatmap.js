@@ -1,4 +1,4 @@
-function HeatFig(pos, size){
+function HeatFig(pos, size) {
   this.x = pos.x;
   this.y = pos.y;
   this.margin = { top: 0, right: 0, bottom: 0, left: 0 };
@@ -27,7 +27,7 @@ function HeatFig(pos, size){
     .attr("height", this.innerHeight);
 }
 
-HeatFig.prototype.show = function (data, mapData){
+HeatFig.prototype.show = function (data, mapData) {
   const gridSize = 3;
 
   let projection = d3
@@ -85,15 +85,18 @@ HeatFig.prototype.show = function (data, mapData){
   };
 
   renderMap(this.svg, mapData, projection);
+  renderMap(this.svg, mapData, projection);
 
   // 遍历每个时间戳的数据
   let aggregatedData = {};
   let points = [];
   for (let timestamp in data) {
     data[timestamp].forEach((vehicle) => {
-      if (vehicle.type in [1,4,5,6]) {
-        points.push({x:projection([vehicle.position.x, vehicle.position.y])[0],
-          y:projection([vehicle.position.x, vehicle.position.y])[1]});
+      if (vehicle.type in [1, 4, 5, 6]) {
+        points.push({
+          x: projection([vehicle.position.x, vehicle.position.y])[0],
+          y: projection([vehicle.position.x, vehicle.position.y])[1],
+        });
         // let gridX = Math.floor(vehicle.position.x / gridSize) * gridSize;
         // let gridY = Math.floor(vehicle.position.y / gridSize) * gridSize;
         // let gridKey = `${gridX}_${gridY}`;
@@ -115,71 +118,81 @@ HeatFig.prototype.show = function (data, mapData){
   //     value: d.count,
   //   };
   // });
+  // let aggregatedArray = Object.values(aggregatedData);
+  // const points = aggregatedArray.map((d) => {
+  //   return {
+  //     x: projection([d.x, d.y])[0],
+  //     y: projection([d.x, d.y])[1],
+  //     value: d.count,
+  //   };
+  // });
 
   points.forEach((point, index) => {
-        // 为每个点创建一个径向渐变
-        const gradient = this.svg.append('defs')
-          .append('radialGradient')
-          .attr('id', 'gradient' + index);
-    
-        gradient.append('stop')
-          .attr('offset', '0%')
-          .attr('stop-color', "red")
-          .attr('stop-opacity', 0.7); //point.value/d3.max(points, d => d.value)
-        gradient.append('stop')
-          .attr('offset', '100%')
-          .attr('stop-color', "red")
-          .attr('stop-opacity', 0);
-    
-        // 绘制使用渐变的圆
-        this.svg.append('circle')
-            .attr('class','heat_point')
-            .attr('cx', point.x)
-            .attr('cy', point.y)
-            .attr('r', 3.5)  // 半径，可以根据需要调整
-            .style('fill', 'url(#gradient' + index + ')');
+    // 为每个点创建一个径向渐变
+    const gradient = this.svg
+      .append("defs")
+      .append("radialGradient")
+      .attr("id", "gradient" + index);
+
+    gradient
+      .append("stop")
+      .attr("offset", "0%")
+      .attr("stop-color", "red")
+      .attr("stop-opacity", 0.7); //point.value/d3.max(points, d => d.value)
+    gradient
+      .append("stop")
+      .attr("offset", "100%")
+      .attr("stop-color", "red")
+      .attr("stop-opacity", 0);
+
+    // 绘制使用渐变的圆
+    this.svg
+      .append("circle")
+      .attr("class", "heat_point")
+      .attr("cx", point.x)
+      .attr("cy", point.y)
+      .attr("r", 3.5) // 半径，可以根据需要调整
+      .style("fill", "url(#gradient" + index + ")");
   });
 
-const legendWidth = 100; // 图例宽度
-const legendHeight = 10; // 图例高度
-const legendPosition = { x: 10, y: 20 }; // 图例位置
+  const legendWidth = 100; // 图例宽度
+  const legendHeight = 10; // 图例高度
+  const legendPosition = { x: 10, y: 20 }; // 图例位置
 
-const legendScale = d3.scaleLinear()
+  const legendScale = d3
+    .scaleLinear()
     .domain([0, 1]) // 代表最小和最大的热力值
     .range(["rgba(255, 0, 0, 0)", "rgba(255, 0, 0, 0.7)"]); // 与热力图的颜色和透明度相匹配
 
-    // 创建线性渐变
-const linearGradient = this.svg.append('defs')
-.append('linearGradient')
-.attr('id', 'legend-gradient');
+  // 创建线性渐变
+  const linearGradient = this.svg
+    .append("defs")
+    .append("linearGradient")
+    .attr("id", "legend-gradient");
 
-linearGradient.selectAll('stop')
-.data(legendScale.range())
-.enter().append('stop')
-.attr('offset', (d, i) => i * 100 + '%')
-.attr('stop-color', d => d);
+  linearGradient
+    .selectAll("stop")
+    .data(legendScale.range())
+    .enter()
+    .append("stop")
+    .attr("offset", (d, i) => i * 100 + "%")
+    .attr("stop-color", (d) => d);
 
-// 绘制图例条
-this.svg.append('rect')
-.attr('x', legendPosition.x)
-.attr('y', legendPosition.y)
-.attr('width', legendWidth)
-.attr('height', legendHeight)
-.style('fill', 'url(#legend-gradient)')
-.attr("stroke-opacity", 1)
-.attr("stroke-width", 0.5)
-.attr("stroke", "gray");
+  // 绘制图例条
+  this.svg
+    .append("rect")
+    .attr("x", legendPosition.x)
+    .attr("y", legendPosition.y)
+    .attr("width", legendWidth)
+    .attr("height", legendHeight)
+    .style("fill", "url(#legend-gradient)")
+    .attr("stroke-opacity", 1)
+    .attr("stroke-width", 0.5)
+    .attr("stroke", "gray");
 
-// this.svg.append('text')
-//   .attr('x', legendPosition.x)
-//   .attr('y', legendPosition.y + legendHeight + 4)
-//   .text('0')
-//   .style("font-size", "5px");
-
-// this.svg.append('text')
-//   .attr('x', legendPosition.x + legendWidth)
-//   .attr('y', legendPosition.y + legendHeight + 4)
-//   .attr('text-anchor', 'end')
-//   .style("font-size", "5px")
-//   .text(1);
+  // this.svg.append('text')
+  //   .attr('x', legendPosition.x)
+  //   .attr('y', legendPosition.y + legendHeight + 4)
+  //   .text('0')
+  //   .style("font-size", "5px");
 };
