@@ -56,6 +56,7 @@
   <script src="{{url_for('static', filename='js/volfig.js')}}"></script>
   <script src="{{url_for('static', filename='js/heatmap.js')}}"></script>
   <script src="{{url_for('static', filename='js/jam_analysis.js')}}"></script>
+  <script src="{{url_for('static', filename='js/idfig.js')}}"></script>
   <script>
     const MARGIN = { top: 20, right: 200, left: 200, bottom: 200 };
     const WIDTH = 1920,
@@ -92,6 +93,14 @@
     };
     const POS_JAM= { x: POS_MAIN.x + SIZE_MAIN.width, y: POS_MAIN.y+SIZE_HEAT.height };
     const jamfig = new JamFig(POS_JAM,SIZE_JAM);
+
+    // 个人ID视图
+    const SIZE_ID = {
+      width: (WIDTH - MARGIN.left - MARGIN.right) / 4,
+      height: (HEIGHT - MARGIN.top - MARGIN.bottom) / 4,
+    };
+    const POS_ID = { x: POS_HEAT.x, y: POS_HEAT.y + SIZE_HEAT.height };
+    const idfig = new IdFig(POS_ID, SIZE_ID);
 
     const TYPE2COLOR = {
       1: "#FA8828",

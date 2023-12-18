@@ -99,6 +99,7 @@ function MainFig(pos, size) {
 
     return [proj_x, proj_y, proj_width, proj_height, proj_cent_x, proj_cent_y];
   };
+
   // 在data中查询id的记录
   // TODO: 注意，这个之后要改到后端里面执行
   this.cvtIdData = function (data, id) {
@@ -118,6 +119,35 @@ function MainFig(pos, size) {
   // 突出显示相关
   this.SELECTED_MODE = false;
   this.SELECTED_ID = "none";
+  this.quitSelectedMode = function () {
+    self.SELECTED_MODE = false;
+    self.SELECTED_ID = "none";
+    self.datagroup
+      .selectAll(".data_item")
+      .attr("opacity", 1)
+      .attr("selected", false);
+    // 删除路径
+    self.pathgroup.selectAll("path").remove();
+  };
+
+  this.paintPath = function (idPosData) {
+    // 清除已有路径
+    self.pathgroup.selectAll("path").remove();
+    // 生成路径
+    const pathLine = d3
+      .line()
+      .curve(d3.curveBasis)
+      .x((d) => self.projection([d["x"], d["y"]])[0])
+      .y((d) => self.projection([d["x"], d["y"]])[1]);
+    self.pathgroup
+      .append("path")
+      .attr("class", "path")
+      .attr("d", pathLine(idPosData))
+      .attr("transform", self.zoom_transform)
+      .attr("stroke-width", 0.7)
+      .attr("stroke", "red")
+      .attr("fill", "none");
+  };
 
   // Zoom相关
   this.initialScale = 1;
@@ -182,22 +212,8 @@ function MainFig(pos, size) {
           .filter((d) => d["id"] != id)
           .attr("opacity", 0.25)
           .attr("selected", false);
-        // 清除已有路径
-        pathgroup.selectAll("path").remove();
-        // 生成路径
-        const pathLine = d3
-          .line()
-          .curve(d3.curveBasis)
-          .x((d) => self.projection([d["x"], d["y"]])[0])
-          .y((d) => self.projection([d["x"], d["y"]])[1]);
-        pathgroup
-          .append("path")
-          .attr("class", "path")
-          .attr("d", pathLine(idPosData))
-          .attr("transform", self.zoom_transform)
-          .attr("stroke-width", 0.7)
-          .attr("stroke", "red")
-          .attr("fill", "none");
+        // 绘制路径
+        self.paintPath(idPosData);
       }
     };
   };
@@ -205,19 +221,12 @@ function MainFig(pos, size) {
   this.mousedblclickEvent = function (event, d) {
     // 取消选取模式
     if (self.SELECTED_MODE && d3.select(this).attr("selected") == "true") {
-      self.SELECTED_MODE = false;
-      self.SELECTED_ID = "none";
-      // 恢复正常
+      self.quitSelectedMode();
+      // 此物体恢复正常
       d3.select(this)
         .attr("stroke", "black")
         .attr("stroke-width", 0)
         .attr("selected", false);
-      self.datagroup
-        .selectAll(".data_item")
-        .attr("opacity", 1)
-        .attr("selected", false);
-      // 删除路径
-      self.pathgroup.selectAll("path").remove();
     }
   };
 
@@ -247,6 +256,21 @@ function MainFig(pos, size) {
     self.datagroup.selectAll("circle").attr("transform", event.transform);
     self.pathgroup.selectAll("path").attr("transform", event.transform);
   }
+
+  this.update_data = async function () {
+    this.record_data = this.cache_data;
+    this.time_stamp_list = Object.keys(this.record_data);
+    this.cur_time_stamp_idx = 0;
+    this.cur_time_stamp = this.time_stamp_list[this.cur_time_stamp_idx];
+    this.time_text.text(this.timeFormat(new Date(this.cur_time_stamp * 1000)));
+    fetch(
+      `http://127.0.0.1:5100/get_data_by_ts?ts=${
+        parseInt(this.cur_time_stamp) + 60
+      }`
+    )
+      .then((response) => response.json())
+      .then((data) => (self.cache_data = data));
+  };
 
   this.update_data = async function () {
     this.record_data = this.cache_data;
@@ -369,6 +393,8 @@ MainFig.prototype.renderMap = async function (mapData) {
 };
 
 MainFig.prototype.renderObject = async function (data) {
+  // 退出选择模式
+  this.quitSelectedMode();
   // 停止播放
   this.play_flag = false;
   this.bottom_text.text("播放");
@@ -378,7 +404,13 @@ MainFig.prototype.renderObject = async function (data) {
   this.cache_data = data;
   await this.update_data();
 
+  // 初始化数据信息
+  this.record_data = null;
+  this.cache_data = data;
+  await this.update_data();
+
   // 初始化第一帧数据
+  const timeData = this.record_data[this.cur_time_stamp];
   const timeData = this.record_data[this.cur_time_stamp];
   const reformulatePos = this.reformulatePos;
   const projection = this.projection;
@@ -422,10 +454,12 @@ MainFig.prototype.renderObject = async function (data) {
     .attr("fill", (d) => TYPE2COLOR[d["type"]])
     .attr("selected", false)
     .attr("id", (d) => d["id"])
+    .attr("opacity", 1)
     .on("mouseover", this.mouseoverEvent)
     .on("mouseout", this.mouseoutEvent)
-    .on("click", this.mouseclickEventFactory(this.record_data)) //TODO
+    .on("click", this.mouseclickEventFactory(data))
     .on("dblclick", this.mousedblclickEvent);
+  // .on("dblclick", this.mousedblclickEvent);
 
   this.datagroup
     .selectAll("circle")
@@ -440,18 +474,21 @@ MainFig.prototype.renderObject = async function (data) {
     .attr("selected", false)
     .attr("transform", zoom_transform)
     .attr("id", (d) => d["id"])
+    .attr("opacity", 1)
     .on("mouseover", this.mouseoverEvent)
     .on("mouseout", this.mouseoutEvent)
-    .on("click", this.mouseclickEventFactory(this.record_data)) //TODO
+    .on("click", this.mouseclickEventFactory(data))
     .on("dblclick", this.mousedblclickEvent);
 };
 
 MainFig.prototype.updateObject = async function (transition) {
   var self = this;
   console.log(this.cur_time_stamp, this.cur_time_stamp_idx);
+  console.log(this.cur_time_stamp, this.cur_time_stamp_idx);
   const reformulatePos = this.reformulatePos;
   const projection = this.projection;
   var datagroup = self.datagroup;
+
 
   data = this.record_data;
   timeData = data[this.cur_time_stamp];
@@ -466,15 +503,15 @@ MainFig.prototype.updateObject = async function (transition) {
 
   // 检查之前被选取的元素是否消失
   if (!timeData.map((d) => d["id"]).includes(self.SELECTED_ID)) {
-    self.SELECTED_MODE = false;
-    self.SELECTED_ID = "none";
-    // 恢复正常
-    d3.select("#data_group")
-      .selectAll(".data_item")
-      .attr("opacity", 1)
-      .attr("selected", false);
-    // 删除路径
-    self.pathgroup.selectAll("path").remove();
+    // 退出选择模式
+    this.quitSelectedMode();
+  }
+
+  // 更新路径
+  if (self.SELECTED_MODE) {
+    idData = self.cvtIdData(data, self.SELECTED_ID);
+    idPosData = idData.map((d) => d["position"]);
+    self.paintPath(idPosData);
   }
 
   // 设置动画效果时间
@@ -517,8 +554,9 @@ MainFig.prototype.updateObject = async function (transition) {
     .attr("id", (d) => d["id"])
     .on("mouseover", self.mouseoverEvent)
     .on("mouseout", self.mouseoutEvent)
-    .on("click", self.mouseclickEventFactory(data)) //TODO
-    .on("dblclick", self.mousedblclickEvent);
+    .on("click", this.mouseclickEventFactory(data))
+    .on("dblclick", this.mousedblclickEvent);
+  // .on("dblclick", self.mousedblclickEvent);
 
   // 其他元素进行调整
   datagroup
@@ -603,8 +641,9 @@ MainFig.prototype.updateObject = async function (transition) {
     .attr("id", (d) => d["id"])
     .on("mouseover", self.mouseoverEvent)
     .on("mouseout", self.mouseoutEvent)
-    .on("click", self.mouseclickEventFactory(data)) //TODO.
-    .on("dblclick", self.mousedblclickEvent);
+    .on("click", this.mouseclickEventFactory(data))
+    .on("dblclick", this.mousedblclickEvent);
+  // .on("dblclick", self.mousedblclickEvent);
 
   datagroup
     .selectAll("circle")
@@ -627,6 +666,13 @@ MainFig.prototype.play = async function () {
       await this.updateObject(true);
     }
     // 更新数据状态
+  while (this.play_flag) {
+    // TODO: 无法在00时刻停止
+    if (this.cur_time_stamp_idx === this.time_stamp_list.length - 1) {
+      this.update_data();
+      await this.updateObject(true);
+    }
+    // 更新数据状态
     this.cur_time_stamp_idx += 1;
     this.cur_time_stamp = this.time_stamp_list[this.cur_time_stamp_idx];
     this.time_text.text(this.timeFormat(new Date(this.cur_time_stamp * 1000)));
@@ -634,6 +680,7 @@ MainFig.prototype.play = async function () {
   }
 };
 
+MainFig.prototype.show = async function (cache, mapData) {
 MainFig.prototype.show = async function (cache, mapData) {
   // 绘制地图
   await this.renderMap(mapData);
