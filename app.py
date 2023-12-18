@@ -35,6 +35,12 @@ def get_init_map_data():
     init_records = model.get_data_by_ts(init_time)
     return json.dumps({"map_data": model.map_data, "cache_data": init_records})
 
+@app.route('/get_jamfig_data', methods=["GET"])
+def get_jamfig_data():
+    with open("data_jam.json",encoding='UTF-8') as f:
+        jamfig_data = json.load(f)
+    return jamfig_data
+
 @app.route('/get_record_data', methods=["GET"])
 def get_record_data():
     return json.dumps(model.record_data)

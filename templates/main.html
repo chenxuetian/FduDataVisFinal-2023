@@ -55,6 +55,7 @@
   <script src="{{url_for('static', filename='js/mainfig.js')}}"></script>
   <script src="{{url_for('static', filename='js/volfig.js')}}"></script>
   <script src="{{url_for('static', filename='js/heatmap.js')}}"></script>
+  <script src="{{url_for('static', filename='js/jam_analysis.js')}}"></script>
   <script src="{{url_for('static', filename='js/idfig.js')}}"></script>
   <script>
     const MARGIN = { top: 20, right: 200, left: 200, bottom: 200 };
@@ -78,10 +79,20 @@
     const mainfig = new MainFig(POS_MAIN, SIZE_MAIN);
 
     // heatmap
-    const WIDTH_HEAT = (WIDTH - MARGIN.left - MARGIN.right) / 4;
-    const HEIGHT_HEAT = (HEIGHT - MARGIN.top - MARGIN.bottom) / 4;
-    const SIZE_HEAT = { width: WIDTH_HEAT, height: HEIGHT_HEAT };
+    const SIZE_HEAT = {
+      width: (WIDTH - MARGIN.left - MARGIN.right) / 4,
+      height: (HEIGHT - MARGIN.top - MARGIN.bottom) / 4,
+    };
     const POS_HEAT = { x: POS_MAIN.x + SIZE_MAIN.width, y: POS_MAIN.y };
+    const heatfig = new HeatFig(POS_HEAT, SIZE_HEAT);
+
+    // jam_analysis
+    const SIZE_JAM = {
+      width: (WIDTH - MARGIN.left - MARGIN.right) / 4,
+      height: (HEIGHT - MARGIN.top - MARGIN.bottom) / 4,
+    };
+    const POS_JAM= { x: POS_MAIN.x + SIZE_MAIN.width, y: POS_MAIN.y+SIZE_HEAT.height };
+    const jamfig = new JamFig(POS_JAM,SIZE_JAM);
 
     // 个人ID视图
     const SIZE_ID = {
@@ -127,6 +138,13 @@
       .then((data) => {
         volfig.show(data.types, data.data);
       });
+    fetch("http://127.0.0.1:5100/get_jamfig_data")
+      .then((response) => {
+        return response.json();
+      })
+      .then((data) => {
+        jamfig.show(data);
+      });
 
     fetch("http://127.0.0.1:5100/get_init_map_data")
       .then((response) => {
@@ -136,6 +154,7 @@
         map_data = data["map_data"];
         cache_data = data["cache_data"];
         mainfig.show(cache_data, map_data);
+        heatfig.show(cache_data, map_data);
         // render_heatmap(record_data, map_data);
       });
   </script>
