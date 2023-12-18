@@ -2,6 +2,7 @@
 import os
 import json
 import flask
+import pandas as pd
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
@@ -25,6 +26,12 @@ def get_data_by_ts():
     ts = int(request.args.get('ts', -1))
     return json.dumps(model.get_data_by_ts(ts))
 
+@app.route("/get_pos_data_by_two_ts", methods=["GET"])
+def get_pos_data_by_two_ts():
+    ts0 = int(request.args.get('ts0', -1))
+    ts1 = int(request.args.get('ts1', -1))
+    return json.dumps(model.get_pos_data_by_two_ts(ts0, ts1))
+
 @app.route('/get_volume_data', methods=["GET"])
 def get_volume_data():
     return json.dumps({"types": model.used_types, "data": model.volume_data})
@@ -44,6 +51,12 @@ def get_jamfig_data():
 @app.route('/get_record_data', methods=["GET"])
 def get_record_data():
     return json.dumps(model.record_data)
+
+@app.route('/get_cluster_data', methods=["GET"])
+def get_cluster_data():
+    df1 = pd.read_csv('stats_with_cluster_types.csv', sep=",")
+    df2 = pd.read_csv('grouped_stats.csv', sep=",")
+    return [df1.loc[:].to_dict(orient="records"), df2.loc[:].to_dict(orient="records")]
 
 
 if __name__ == "__main__":

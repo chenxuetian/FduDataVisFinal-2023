@@ -45,3 +45,9 @@ class Model:
 
     def get_data_by_ts(self, ts):
         return self.time_data.loc[ts:ts+60-self.interval].groupby("time_meas").apply(lambda group: group.to_dict(orient='records')).to_dict()
+    
+    def get_pos_data_by_two_ts(self, ts0, ts1):
+        selected_time_data = self.time_data.loc[ts0:ts1-self.interval].groupby("time_meas").apply(lambda group: group.to_dict(orient='records'))
+        # pos_data = selected_time_data.apply(lambda group: {"type":group["type"], "position": {"x": group["position"]["x"], "y": group["position"]["y"]}}).to_dict()
+        pos_data = selected_time_data.apply(lambda group: [{"type": rec["type"], "position": {"x": rec["position"]["x"], "y": rec["position"]["y"]}} for rec in group]).to_dict()
+        return pos_data

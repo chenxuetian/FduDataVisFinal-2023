@@ -1,4 +1,5 @@
 function HeatFig(pos, size) {
+  var self = this;
   this.x = pos.x;
   this.y = pos.y;
   this.margin = { top: 0, right: 0, bottom: 0, left: 0 };
@@ -16,6 +17,8 @@ function HeatFig(pos, size) {
     .attr("width", this.outerWidth)
     .attr("height", this.outerHeight);
   this.svg = this.bg_svg.append("g");
+  this.datagroup = this.svg.append("g").attr("id", "datagroup");
+  this.gradientGroup = this.svg.append("g").attr("id", "gradientGroup");
 
   this.bound = this.svg
     .append("rect")
@@ -25,14 +28,84 @@ function HeatFig(pos, size) {
     .attr("stroke", "black")
     .attr("width", this.outerWidth)
     .attr("height", this.innerHeight);
+
+  // 绘制数据函数
+  // 遍历每个时间戳的数据
+  this.plot = function (posData) {
+    let gridSize = this.gridSize;
+    let aggregatedData = {};
+    for (let timestamp in posData) {
+      posData[timestamp].forEach((vehicle) => {
+        if (vehicle.type in [1, 4, 5, 6]) {
+          // points.push({
+          //   x: self.projection([vehicle.position.x, vehicle.position.y])[0],
+          //   y: self.projection([vehicle.position.x, vehicle.position.y])[1],
+          // });
+          let gridX = Math.floor(vehicle.position.x / gridSize) * gridSize;
+          let gridY = Math.floor(vehicle.position.y / gridSize) * gridSize;
+          let gridKey = `${gridX}_${gridY}`;
+
+          // 聚合计数
+          if (!aggregatedData[gridKey]) {
+            aggregatedData[gridKey] = { count: 0, x: gridX, y: gridY };
+          }
+          aggregatedData[gridKey].count++;
+        }
+      });
+    }
+
+    let aggregatedArray = Object.values(aggregatedData);
+    const points = aggregatedArray.map((d) => {
+      return {
+        x: self.projection([d.x, d.y])[0],
+        y: self.projection([d.x, d.y])[1],
+        value: d.count,
+      };
+    });
+
+    points.forEach((point, index) => {
+      // 为每个点创建一个径向渐变
+      const gradient = self.gradientGroup
+        .append("defs")
+        .append("radialGradient")
+        .attr("id", "gradient" + index)
+        .attr("class", "gradient");
+
+      gradient
+        .append("stop")
+        .attr("offset", "0%")
+        .attr("stop-color", "red")
+        .attr(
+          "stop-opacity",
+          (0.9 * point.value) / d3.max(points, (d) => d.value)
+        ); //point.value/d3.max(points, d => d.value)
+      gradient
+        .append("stop")
+        .attr("offset", "100%")
+        .attr("stop-color", "red")
+        .attr("stop-opacity", 0);
+
+      // 绘制使用渐变的圆
+      self.datagroup
+        .append("circle")
+        .attr("class", "heat_point")
+        .attr("cx", point.x)
+        .attr("cy", point.y)
+        .attr("r", 3.5) // 半径，可以根据需要调整
+        .style("fill", "url(#gradient" + index + ")");
+    });
+    console.log(d3.max(points, (d) => d.value));
+  };
 }
 
 HeatFig.prototype.show = function (data, mapData) {
-  const gridSize = 3;
+  this.gridSize = 3;
 
-  let projection = d3
+  this.projection = d3
     .geoIdentity()
     .fitSize([this.outerWidth, this.outerHeight], mapData[0]);
+
+  let projection = this.projection;
 
   function renderMap(svg, mapData, projection) {
     bound_data = mapData[0];
@@ -86,65 +159,8 @@ HeatFig.prototype.show = function (data, mapData) {
 
   renderMap(this.svg, mapData, projection);
 
-  // 遍历每个时间戳的数据
-  let aggregatedData = {};
-  let points = [];
-  for (let timestamp in data) {
-    data[timestamp].forEach((vehicle) => {
-      if (vehicle.type in [1, 4, 5, 6]) {
-        points.push({
-          x: projection([vehicle.position.x, vehicle.position.y])[0],
-          y: projection([vehicle.position.x, vehicle.position.y])[1],
-        });
-        // let gridX = Math.floor(vehicle.position.x / gridSize) * gridSize;
-        // let gridY = Math.floor(vehicle.position.y / gridSize) * gridSize;
-        // let gridKey = `${gridX}_${gridY}`;
-
-        // // 聚合计数
-        // if (!aggregatedData[gridKey]) {
-        //   aggregatedData[gridKey] = { count: 0, x: gridX, y: gridY };
-        // }
-        // aggregatedData[gridKey].count++;
-      }
-    });
-  }
-
-  // let aggregatedArray = Object.values(aggregatedData);
-  // const points = aggregatedArray.map((d) => {
-  //   return {
-  //     x: projection([d.x, d.y])[0],
-  //     y: projection([d.x, d.y])[1],
-  //     value: d.count,
-  //   };
-  // });
-
-  points.forEach((point, index) => {
-    // 为每个点创建一个径向渐变
-    const gradient = this.svg
-      .append("defs")
-      .append("radialGradient")
-      .attr("id", "gradient" + index);
-
-    gradient
-      .append("stop")
-      .attr("offset", "0%")
-      .attr("stop-color", "red")
-      .attr("stop-opacity", 0.7); //point.value/d3.max(points, d => d.value)
-    gradient
-      .append("stop")
-      .attr("offset", "100%")
-      .attr("stop-color", "red")
-      .attr("stop-opacity", 0);
-
-    // 绘制使用渐变的圆
-    this.svg
-      .append("circle")
-      .attr("class", "heat_point")
-      .attr("cx", point.x)
-      .attr("cy", point.y)
-      .attr("r", 3.5) // 半径，可以根据需要调整
-      .style("fill", "url(#gradient" + index + ")");
-  });
+  // 绘制数据
+  this.plot(data);
 
   const legendWidth = 100; // 图例宽度
   const legendHeight = 10; // 图例高度
@@ -186,4 +202,15 @@ HeatFig.prototype.show = function (data, mapData) {
   //   .attr('y', legendPosition.y + legendHeight + 4)
   //   .text('0')
   //   .style("font-size", "5px");
+};
+
+HeatFig.prototype.update = function (data) {
+  console.log("Start");
+  // 清除已有数据
+  console.log(this.svg.select("#datagroup").selectAll(".heat_point"));
+  this.svg.select("#datagroup").selectAll(".heat_point").remove();
+  this.svg.select("#gradientGroup").selectAll(".gradient").remove();
+  // 绘制新数据
+  this.plot(data);
+  console.log("End");
 };

@@ -56,11 +56,29 @@
   <script src="{{url_for('static', filename='js/volfig.js')}}"></script>
   <script src="{{url_for('static', filename='js/heatmap.js')}}"></script>
   <script src="{{url_for('static', filename='js/jam_analysis.js')}}"></script>
-  <script src="{{url_for('static', filename='js/idfig.js')}}"></script>
+  <script src="{{url_for('static', filename='js/clusterfig.js')}}"></script>
   <script>
     const MARGIN = { top: 20, right: 200, left: 200, bottom: 200 };
     const WIDTH = 1920,
       HEIGHT = 1280;
+
+    const TYPE2COLOR = {
+      1: "#FA8828",
+      2: "#419BB0",
+      3: "#9FC131",
+      4: "#a65628",
+      6: "#984ea3",
+      10: "#fe8de5",
+    };
+
+    const TYPE = {
+      1: "小型车辆",
+      2: "行人",
+      3: "非机动车",
+      4: "卡车",
+      6: "客车",
+      10: "手推车、三轮车",
+    };
 
     // 车流量视图
     const SIZE_VOL = {
@@ -91,34 +109,30 @@
       width: (WIDTH - MARGIN.left - MARGIN.right) / 4,
       height: (HEIGHT - MARGIN.top - MARGIN.bottom) / 4,
     };
-    const POS_JAM= { x: POS_MAIN.x + SIZE_MAIN.width, y: POS_MAIN.y+SIZE_HEAT.height };
-    const jamfig = new JamFig(POS_JAM,SIZE_JAM);
+    const POS_JAM = {
+      x: POS_MAIN.x + SIZE_MAIN.width,
+      y: POS_MAIN.y + SIZE_HEAT.height,
+    };
+    const jamfig = new JamFig(POS_JAM, SIZE_JAM);
 
-    // 个人ID视图
-    const SIZE_ID = {
-      width: (WIDTH - MARGIN.left - MARGIN.right) / 4,
+    // 聚类结果
+    const SIZE_CLUSTER = {
+      width: SIZE_MAIN.width + SIZE_JAM.width,
       height: (HEIGHT - MARGIN.top - MARGIN.bottom) / 4,
     };
-    const POS_ID = { x: POS_HEAT.x, y: POS_HEAT.y + SIZE_HEAT.height };
-    const idfig = new IdFig(POS_ID, SIZE_ID);
-
-    const TYPE2COLOR = {
-      1: "#FA8828",
-      2: "#419BB0",
-      3: "#9FC131",
-      4: "#a65628",
-      6: "#984ea3",
-      10: "#fe8de5",
+    const POS_CLUSTER = {
+      x: POS_MAIN.x,
+      y: POS_MAIN.y + SIZE_MAIN.height,
     };
+    const clusterfig = new ClusterFig(POS_CLUSTER, SIZE_CLUSTER);
 
-    const TYPE = {
-      1: "小型车辆",
-      2: "行人",
-      3: "非机动车",
-      4: "卡车",
-      6: "客车",
-      10: "手推车、三轮车",
-    };
+    // 个人ID视图
+    // const SIZE_ID = {
+    //   width: (WIDTH - MARGIN.left - MARGIN.right) / 4,
+    //   height: (HEIGHT - MARGIN.top - MARGIN.bottom) / 4,
+    // };
+    // const POS_ID = { x: POS_HEAT.x, y: POS_HEAT.y + SIZE_HEAT.height };
+    // const idfig = new IdFig(POS_ID, SIZE_ID);
 
     // Total svg.
     const svg = d3.select("#mainsvg");
@@ -156,6 +170,18 @@
         mainfig.show(cache_data, map_data);
         heatfig.show(cache_data, map_data);
         // render_heatmap(record_data, map_data);
+      });
+
+    fetch("http://127.0.0.1:5100/get_cluster_data")
+      .then((response) => {
+        return response.json();
+      })
+      .then((data) => {
+        allData = data[0]
+          .filter((d) => d.type === 1 || d.type === 3)
+          .slice(0, 1000); // 只取过滤后的前500条数据
+        groupedData = data[1].filter((d) => d.type === 1 || d.type === 3);
+        clusterfig.show(allData, groupedData);
       });
   </script>
 </body>
