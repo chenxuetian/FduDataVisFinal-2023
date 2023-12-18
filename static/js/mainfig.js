@@ -411,7 +411,6 @@ MainFig.prototype.renderObject = async function (data) {
 
   // 初始化第一帧数据
   const timeData = this.record_data[this.cur_time_stamp];
-  const timeData = this.record_data[this.cur_time_stamp];
   const reformulatePos = this.reformulatePos;
   const projection = this.projection;
 
@@ -666,13 +665,6 @@ MainFig.prototype.play = async function () {
       await this.updateObject(true);
     }
     // 更新数据状态
-  while (this.play_flag) {
-    // TODO: 无法在00时刻停止
-    if (this.cur_time_stamp_idx === this.time_stamp_list.length - 1) {
-      this.update_data();
-      await this.updateObject(true);
-    }
-    // 更新数据状态
     this.cur_time_stamp_idx += 1;
     this.cur_time_stamp = this.time_stamp_list[this.cur_time_stamp_idx];
     this.time_text.text(this.timeFormat(new Date(this.cur_time_stamp * 1000)));
@@ -680,7 +672,7 @@ MainFig.prototype.play = async function () {
   }
 };
 
-MainFig.prototype.show = async function (cache, mapData) {
+
 MainFig.prototype.show = async function (cache, mapData) {
   // 绘制地图
   await this.renderMap(mapData);
