@@ -46,7 +46,7 @@ def get_init_map_data():
 def get_jamfig_data():
     with open("data_jam.json",encoding='UTF-8') as f:
         jamfig_data = json.load(f)
-    return jamfig_data
+    return json.dumps(jamfig_data)
 
 @app.route('/get_record_data', methods=["GET"])
 def get_record_data():
@@ -54,9 +54,9 @@ def get_record_data():
 
 @app.route('/get_cluster_data', methods=["GET"])
 def get_cluster_data():
-    df1 = pd.read_csv('stats_with_cluster_types.csv', sep=",")
-    df2 = pd.read_csv('grouped_stats.csv', sep=",")
-    return [df1.loc[:].to_dict(orient="records"), df2.loc[:].to_dict(orient="records")]
+    df1 = pd.read_csv('static/csv/stats_with_cluster_types.csv', sep=",")
+    df2 = pd.read_csv('static/csv/grouped_stats.csv', sep=",")
+    return json.dumps([df1.loc[:].to_dict(orient="records"), df2.loc[:].to_dict(orient="records")])
 
 
 if __name__ == "__main__":
