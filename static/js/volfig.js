@@ -124,6 +124,7 @@ VolumeFig.prototype.show = function (types, data) {
       .then((data) => {
         heatfig.update(data);
       });
+    queuefig.update({start:ts0,end:ts1})
     // // 读取一段时间的数据，用于进行统计热力图、拥堵图、排队图
     // ts_start = Math.floor(time0.getTime() / 1000);
     // ts_end = Math.floor(time1.getTime() / 1000);

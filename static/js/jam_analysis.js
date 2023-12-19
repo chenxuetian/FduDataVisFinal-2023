@@ -1,7 +1,7 @@
 function JamFig(pos,size){
     this.x = pos.x;
     this.y = pos.y;
-    this.margin = { top: 15, right: 10, bottom: 20, left: 25 };
+    this.margin = { top: 20, right: 20, bottom: 20, left: 25 };
     this.outerWidth = size.width;
     this.outerHeight = size.height;
     this.innerWidth = size.width - this.margin.left - this.margin.right;
@@ -136,14 +136,16 @@ JamFig.prototype.show = function (data){
     const xAxis = jamfig_svg
         .append("g")
         .attr("transform", `translate(0, ${this.innerHeight})`)
-        .call(d3.axisBottom(xScale).ticks(10).tickFormat(timeFormat));
+        .call(d3.axisBottom(xScale).ticks(10).tickFormat(timeFormat))
+        .style("font-size", "6px");
 
     const ySclae = d3.scaleLinear()
         .domain([0, 15])
         .range([this.innerHeight, 0]);
     const yAxis = jamfig_svg
         .append("g")
-        .call(d3.axisLeft(ySclae));
+        .call(d3.axisLeft(ySclae))
+        .style("font-size", "6px");
 
     const lineGenerator = d3.line()
         .x(d => xScale(d[0]))
@@ -152,13 +154,28 @@ JamFig.prototype.show = function (data){
     jamfig_svg
         .append("text")
         .attr("text-anchor", "end")
-        .attr("x", this.innerWidth)
-        .attr("y", this.innerHeight + 8)
+        .attr("x", this.innerWidth+ this.margin.right/2+7)
+        .attr("y", this.innerHeight + 5)
         .text("时间")
-        .style("font-size", "5px");
+        .style("font-size", "8px");
 
     const colorScale = d3.scaleOrdinal(d3.schemeCategory10)  // 使用 D3 的一个内置颜色方案
         .domain(['left','right','down','up']);
+
+    jamfig_svg.append("text")
+        .attr("y", 0 - this.margin.top / 2)
+        .attr("x", 0 - this.margin.left/2 + 5)
+        .attr("dy", "1em")
+        .style("text-anchor", "middle")
+        .style("font-size", "8px")
+        .text("平均速度");
+    
+    jamfig_svg.append("text")
+        .attr("x", this.innerWidth / 2)
+        .attr("y", 0 )
+        .attr("text-anchor", "middle")
+        .style("font-size", "12px")
+        .text("各路口平均速度折线图");
 
 
     
@@ -180,20 +197,25 @@ JamFig.prototype.show = function (data){
         }
     }
 
+    // jamfig_svg.selectAll(".lines").style('opacity',d => {
+    //     if(d.c==1){
+
+    //         return 1;}
+    //     else return 0;
+    // })
+
 
 
     const crossings = [1, 2, 3, 4, 5, 6, 7, 8];
     let isOpen = false;
 
-    let cross_lane_map = this.crossing_lane_map;
-
     // 创建一个用于显示当前选择的文本元素
     const currentSelection = jamfig_svg.append("text")
-        .attr("x", 10)
+        .attr("x", 20)
         .attr("y", 10)
         .text("选择路口")
         .style("cursor", "pointer")
-        .style("font-size", "6px")
+        .style("font-size", "8px")
         .on("click", function() {
             isOpen = !isOpen;
             showOptions(isOpen);
@@ -211,17 +233,21 @@ JamFig.prototype.show = function (data){
                 .enter()
                 .append("text")
                 .attr('class','cross_id')
-                .attr("x", 10)
-                .attr("y", (d, i) => 17 + i * 7)
+                .attr("x", 20)
+                .attr("y", (d, i) => 18 + i * 9)
                 .text(d => `路口 ${d}`)
                 .style("cursor", "pointer")
-                .style("font-size", "6px")
+                .style("font-size", "8px")
                 .on("click", function(event, d) {
                     currentSelection.text(`路口 ${d}`);
                     isOpen = false;
-                    showOptions(false);
+                    optionsGroup.selectAll(".cross_id").remove();
                     updateChart(d); // 根据选择的路口更新图表
                 });
+        }
+        else{
+            jamfig_svg.selectAll(".lines").style('opacity',1);
+            currentSelection.text("选择路口");
         }
     }
 
@@ -230,7 +256,6 @@ JamFig.prototype.show = function (data){
 
         jamfig_svg.selectAll(".lines").style('opacity',d => {
             if(d.c==selectedCrossing){
-                console.log(d)
                 return 1;}
             else return 0;
         })

@@ -6,6 +6,7 @@ function QueueFig(pos,size){
     this.outerHeight = size.height;
     this.innerWidth = size.width - this.margin.left - this.margin.right;
     this.innerHeight = size.height - this.margin.top - this.margin.bottom;
+    this.time_interval = 10;
 
     this.fig = d3
         .select("#mainsvg")
@@ -34,8 +35,6 @@ QueueFig.prototype.show = function (data){
     console.log(this.selected_Lanes);
     console.log(data);
 
-
-
     let svg = this.svg;
     this.data = data;
 
@@ -49,60 +48,61 @@ QueueFig.prototype.show = function (data){
         });
 
         for (const direction in data[crossing]) {
-            aggregatedData[crossing][direction] = 0;
             for (const timestamp in data[crossing][direction]) {
                 aggregatedData[crossing][direction] = Math.max(aggregatedData[crossing][direction],data[crossing][direction][timestamp].stop_num);
             }
         }
     }
 
-    // 转换为适用于堆叠布局的数组格式
+
     const processedData = Object.keys(aggregatedData).map(crossing => {
         return { crossing, ...aggregatedData[crossing] };
     });
     console.log(processedData);
 
-     // 假设这是所有可能的方位
-    const stack = d3.stack().keys(keys);
-    const stackedData = stack(processedData);
+    this.stack = d3.stack().keys(keys);
+    const stackedData = this.stack(processedData);
     console.log(stackedData);
 
-    const xScale = d3.scaleBand()
+    this.xScale = d3.scaleBand()
         .domain(processedData.map(d => d.crossing))
         .range([0, this.innerWidth])
         .padding(0.1);
 
-    const yScale = d3.scaleLinear()
+    this.yScale = d3.scaleLinear()
         .domain([0, d3.max(stackedData, d => d3.max(d, d => d[1]))])
         .range([this.innerHeight, 0]);
 
-    const colorScale = d3.scaleOrdinal(d3.schemeCategory10)  // 使用 D3 的一个内置颜色方案
+    this.colorScale = d3.scaleOrdinal(d3.schemeCategory10)  // 使用 D3 的一个内置颜色方案
         .domain(['left','right','down','up']);
     
-    svg.selectAll("g")
+    svg.selectAll(".stack_rect")
         .data(stackedData)
         .enter().append("g")
-        .attr("fill", d => colorScale(d.key)) // 根据方位选择颜色
+        .attr('class','stack_rect')
+        .attr("fill", d => this.colorScale(d.key)) // 根据方位选择颜色
         .selectAll("rect")
         .data(d => d)
         .enter().append("rect")
-        .attr("x", d => xScale(d.data.crossing))
-        .attr("y", d => yScale(d[1]))
-        .attr("height", d => yScale(d[0]) - yScale(d[1]))
-        .attr("width", xScale.bandwidth());
+        .attr("x", d => this.xScale(d.data.crossing))
+        .attr("y", d => this.yScale(d[1]))
+        .attr("height", d => this.yScale(d[0]) - this.yScale(d[1]))
+        .attr("width", this.xScale.bandwidth());
 
 
-    const xAxis = d3.axisBottom(xScale);
+    const xAxis = d3.axisBottom(this.xScale);
 
     svg.append("g")
+        .attr('class','xAxis')
         .attr("transform", `translate(0, ${this.innerHeight})`) 
         .call(xAxis)
         .selectAll("text")
         .style("font-size", "6px");
 
-    const yAxis = d3.axisLeft(yScale);
+    const yAxis = d3.axisLeft(this.yScale);
 
     svg.append("g")
+        .attr('class','yAxis')
         .call(yAxis)
         .selectAll("text")
         .style("font-size", "6px");
@@ -130,7 +130,7 @@ QueueFig.prototype.show = function (data){
         .text("停车数量");
 
     const legend = this.svg.selectAll(".legend")
-        .data(colorScale.domain())
+        .data(this.colorScale.domain())
         .enter().append("g")
         .attr("class", "legend")
         .attr("transform", (d, i) => `translate(0,${i * 7-15})`);
@@ -139,7 +139,7 @@ QueueFig.prototype.show = function (data){
         .attr("x", this.innerWidth - 8)
         .attr("width", 8)
         .attr("height", 4)
-        .style("fill", colorScale);
+        .style("fill", this.colorScale);
 
     legend.append("text")
         .attr("x", this.innerWidth - 12)
@@ -148,5 +148,64 @@ QueueFig.prototype.show = function (data){
         .style("text-anchor", "end")
         .style("font-size", "6px")  // 设置字体大小
         .text(d => `${d}`); 
+};
+
+QueueFig.prototype.update = function (time){
+    let s = time.start;
+    let e = time.end;
+    s= Math.floor(s/10)*10;
+    e= Math.floor(e/10)*10;
+    console.log([s,e]);
+
+    let data = this.data;
+    let interval = this.time_interval;
+
+    const keys = ['left','right','down','up'];
+    const aggregatedData = {};
+    for(cross in data){
+        aggregatedData[cross] = {};
+        keys.forEach(key => {
+            aggregatedData[cross][key] = 0; // 使用默认值 0
+        });
+        for(direction in data[cross]){
+            let temp = data[cross][direction];
+            console.log(temp);
+            for(s;s<e;s=s+interval){
+                if(s in temp) break;
+            }
+            for(e;e>s;e=e-interval){
+                if(e in temp) break;
+            }
+            if(s>e) console.log("Error for selecting time.");
+            console.log([s,e])
+            console.log(temp[e]);
+            aggregatedData[cross][direction] = temp[e]['stop_num'] - temp[s]['stop_num'];
+        }
+        
+    }
+    console.log(aggregatedData);
+
+    const processedData = Object.keys(aggregatedData).map(cross => {
+        return { cross, ...aggregatedData[cross] };
+    });
+    console.log(processedData);
+
+    const stackedData = this.stack(processedData);
+    console.log(stackedData);
+
+    this.svg.selectAll(".stack_rect").remove();
+
+    this.svg.selectAll(".stack_rect")
+        .data(stackedData)
+        .enter().append("g")
+        .attr('class','stack_rect')
+        .attr("fill", d => this.colorScale(d.key)) // 根据方位选择颜色
+        .selectAll("rect")
+        .data(d => d)
+        .enter().append("rect")
+        .attr("x", d => this.xScale(d.data.cross))
+        .attr("y", d => this.yScale(d[1]))
+        .attr("height", d => this.yScale(d[0]) - this.yScale(d[1]))
+        .attr("width", this.xScale.bandwidth());
 
 }
