@@ -271,6 +271,21 @@ function MainFig(pos, size) {
       .then((response) => response.json())
       .then((data) => (self.cache_data = data));
   };
+
+  this.update_data = async function () {
+    this.record_data = this.cache_data;
+    this.time_stamp_list = Object.keys(this.record_data);
+    this.cur_time_stamp_idx = 0;
+    this.cur_time_stamp = this.time_stamp_list[this.cur_time_stamp_idx];
+    this.time_text.text(this.timeFormat(new Date(this.cur_time_stamp * 1000)));
+    fetch(
+      `http://127.0.0.1:5100/get_data_by_ts?ts=${
+        parseInt(this.cur_time_stamp) + 60
+      }`
+    )
+      .then((response) => response.json())
+      .then((data) => (self.cache_data = data));
+  };
 }
 
 MainFig.prototype.renderLegend = async function () {
@@ -389,6 +404,11 @@ MainFig.prototype.renderObject = async function (data) {
   this.cache_data = data;
   await this.update_data();
 
+  // 初始化数据信息
+  this.record_data = null;
+  this.cache_data = data;
+  await this.update_data();
+
   // 初始化第一帧数据
   const timeData = this.record_data[this.cur_time_stamp];
   const reformulatePos = this.reformulatePos;
@@ -463,9 +483,11 @@ MainFig.prototype.renderObject = async function (data) {
 MainFig.prototype.updateObject = async function (transition) {
   var self = this;
   console.log(this.cur_time_stamp, this.cur_time_stamp_idx);
+  console.log(this.cur_time_stamp, this.cur_time_stamp_idx);
   const reformulatePos = this.reformulatePos;
   const projection = this.projection;
   var datagroup = self.datagroup;
+
 
   data = this.record_data;
   timeData = data[this.cur_time_stamp];
@@ -649,6 +671,7 @@ MainFig.prototype.play = async function () {
     await this.updateObject(true);
   }
 };
+
 
 MainFig.prototype.show = async function (cache, mapData) {
   // 绘制地图
