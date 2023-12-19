@@ -58,6 +58,13 @@ def get_cluster_data():
     df2 = pd.read_csv('static/csv/grouped_stats.csv', sep=",")
     return json.dumps([df1.loc[:].to_dict(orient="records"), df2.loc[:].to_dict(orient="records")])
 
+@app.route("/get_heatmap_data")
+def get_heatmap_data():
+    init = request.args.get('init', "False") == "True"
+    ts0 = int(request.args.get('ts0', -1))
+    ts1 = int(request.args.get('ts1', -1))
+    return json.dumps(model.get_heatmap_data_by_ts(ts0, ts1, init))
+
 
 if __name__ == "__main__":
     app.run(host='127.0.0.1', port=5100, use_reloader=True, debug=True)

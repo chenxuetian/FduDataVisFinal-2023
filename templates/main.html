@@ -167,17 +167,20 @@
         queuefig.show(data);
       });
 
-    fetch("http://127.0.0.1:5100/get_init_map_data")
-      .then((response) => {
-        return response.json();
-      })
-      .then((data) => {
-        map_data = data["map_data"];
-        cache_data = data["cache_data"];
-        mainfig.show(cache_data, map_data);
-        heatfig.show(cache_data, map_data);
-        // render_heatmap(record_data, map_data);
-      });
+    Promise.all([
+      fetch("http://127.0.0.1:5100/get_init_map_data").then((response) =>
+        response.json()
+      ),
+      fetch("http://127.0.0.1:5100/get_heatmap_data?init=True").then(
+        (response) => response.json()
+      ),
+    ]).then((data) => {
+      map_data = data[0]["map_data"];
+      cache_data = data[0]["cache_data"];
+      heatmap_data = data[1];
+      mainfig.show(cache_data, map_data);
+      heatfig.show(heatmap_data, map_data);
+    });
 
     fetch("http://127.0.0.1:5100/get_cluster_data")
       .then((response) => {

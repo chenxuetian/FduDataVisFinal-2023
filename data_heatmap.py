@@ -39,9 +39,9 @@ for i in trange(len(total_ts_minute)):
     ts2matrix[cur_ts] = matrix.copy()
 print(f"Done. There are {n} records.")
 
-with open("data_hitmap.pkl", "wb") as f:
+with open("data_heatmap.pkl", "wb") as f:
     pickle.dump(ts2matrix, f)
-# with open("data_hitmap.pkl", "rb") as f:
+# with open("data_heatmap.pkl", "rb") as f:
 #     ts2matrix2 = pickle.load(f)
 
 

@@ -1,5 +1,8 @@
 import os
 import json
+import pickle
+from scipy.sparse import coo_matrix
+
 import util
 
 
@@ -29,7 +32,10 @@ class Model:
 
         self.interval = interval
         self.time_data = util.read_data_pandas(data_dir, id_dir, interval)
+        self.time_range = [self.time_data.index.min(), self.time_data.index.max()]
         
+        self.map_grid_size = 3
+        self.map_margin = {"x_min":-447, "x_max": 402, "y_min": -636, "y_max": 90}
         self.map_data = []
         for road in ["boundary", "crosswalk", "lane", "signal", "stopline"]:
             with open(os.path.join(data_dir, "road2-12-9road", f"{road}road_with9road.geojson")) as f:
@@ -41,6 +47,9 @@ class Model:
         with open("data_volume.json", encoding="utf-8") as f:
             self.volume_data = json.load(f)
 
+        with open("data_heatmap.pkl", "rb") as f:
+            self.heatmap_data = pickle.load(f)
+
         print("Data prepared.")
 
     def get_data_by_ts(self, ts):
@@ -51,3 +60,18 @@ class Model:
         # pos_data = selected_time_data.apply(lambda group: {"type":group["type"], "position": {"x": group["position"]["x"], "y": group["position"]["y"]}}).to_dict()
         pos_data = selected_time_data.apply(lambda group: [{"type": rec["type"], "position": {"x": rec["position"]["x"], "y": rec["position"]["y"]}} for rec in group]).to_dict()
         return pos_data
+
+    def get_heatmap_data_by_ts(self, ts0, ts1, init):
+        if init:
+            smatrix = coo_matrix(self.heatmap_data[self.time_range[1]])
+        else:
+            smatrix = coo_matrix(self.heatmap_data[ts1] - self.heatmap_data[ts0])
+        data = [
+            {
+                "v": int(d), 
+                "x": int(r) * self.map_grid_size + self.map_margin["x_min"], 
+                "y": int(c) * self.map_grid_size + self.map_margin["y_min"]
+            } 
+            for d, r, c in zip(smatrix.data, smatrix.row, smatrix.col)
+        ]
+        return data

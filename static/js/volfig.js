@@ -44,7 +44,7 @@ VolumeFig.prototype.show = function (types, data) {
     .domain(d3.extent(data.map((d) => d.time)))
     .range([0, this.innerWidth])
     .nice();
-  const xAxis = this.fig
+  this.fig
     .append("g")
     .attr("transform", `translate(0, ${this.innerHeight})`)
     .call(d3.axisBottom(xScale).ticks(9).tickFormat(timeFormat));
@@ -109,11 +109,21 @@ VolumeFig.prototype.show = function (types, data) {
     time_text_start.attr("x", xScale(time0)).text(timeFormatSecond(time0));
     time_text_end.attr("x", xScale(time1)).text(timeFormatSecond(time1));
     // 时间戳设定为第一帧
-    ts = Math.floor(time0.getTime() / 1000);
+    ts0 = Math.floor(time0.getTime() / 1000);
+    ts1 = Math.floor(time1.getTime() / 1000);
     // console.log(ts);
-    fetch(`http://127.0.0.1:5100/get_data_by_ts?ts=${ts}`)
+    fetch(`http://127.0.0.1:5100/get_data_by_ts?ts=${ts0}`)
       .then((response) => response.json())
       .then((data) => mainfig.renderObject(data));
+
+    ats0 = Math.floor(ts0 / 60) * 60;
+    ats1 = Math.ceil(ts1 / 60) * 60;
+    console.log(ats0, ats1);
+    fetch(`http://127.0.0.1:5100/get_heatmap_data?ts0=${ats0}&ts1=${ats1}`)
+      .then((response) => response.json())
+      .then((data) => {
+        heatfig.update(data);
+      });
     // // 读取一段时间的数据，用于进行统计热力图、拥堵图、排队图
     // ts_start = Math.floor(time0.getTime() / 1000);
     // ts_end = Math.floor(time1.getTime() / 1000);
@@ -142,8 +152,9 @@ VolumeFig.prototype.show = function (types, data) {
     .attr("class", "cursor_line")
     .attr("y1", 0)
     .attr("y2", this.innerHeight + 20)
-    .attr("stroke", "grey")
+    .attr("stroke", "black")
     .attr("stroke-width", 2)
+    .style("stroke-dasharray", "1, 5")
     .style("display", "none");
 
   var time_rect_start = this.fig
@@ -188,23 +199,35 @@ VolumeFig.prototype.show = function (types, data) {
     .attr("y", this.innerHeight + 25)
     .attr("font-size", 15);
 
-  // this.fig.on("mousemove", () => {
-  //   mouseX = d3.pointer(event)[0];
-  //   if (mouseX < 0) return;
-  //   cur_time = xScale.invert(mouseX);
-  //   if (cur_time.getSeconds() % 5 !== 0) return;
-  //   cursor_line.attr("x1", mouseX).attr("x2", mouseX).style("display", "block");
-  //   time_rect.attr("x", mouseX - 30);
-  //   time_text.attr("x", mouseX).text(timeFormatSecond(cur_time));
-  // });
-  // time_text.on("click", (event, d) => {
-  //   cur_time = xScale.invert(cursor_line.attr("x1"));
-  //   ts = Math.floor(cur_time.getTime() / 1000);
-  //   console.log(ts);
-  //   fetch(`http://127.0.0.1:5100/get_data_by_ts?ts=${ts}`)
-  //     .then((response) => response.json())
-  //     .then((data) => mainfig.renderObject(data));
-  // });
+  var time_rect_line = this.fig
+    .append("rect")
+    .attr("class", "time_rect_line")
+    .attr("x", 0)
+    .attr("y", this.innerHeight + 25 - 5)
+    .attr("rx", 5)
+    .attr("ry", 5)
+    .attr("width", 60)
+    .attr("height", 20)
+    .attr("fill", "lightgrey")
+    .attr("opacity", 0);
+
+  var time_text_line = this.fig
+    .append("text")
+    .attr("class", "time_text_line")
+    .attr("text-anchor", "middle")
+    .attr("alignment-baseline", "hanging")
+    .attr("x", 0)
+    .attr("y", this.innerHeight + 25)
+    .attr("font-size", 15);
+
+  this.fig.on("mousemove", () => {
+    mouseX = d3.pointer(event)[0];
+    if (mouseX < 0) return;
+    cur_time = xScale.invert(mouseX);
+    cursor_line.attr("x1", mouseX).attr("x2", mouseX).style("display", "block");
+    time_rect_line.attr("x", mouseX - 30).attr("opacity", 1);
+    time_text_line.attr("x", mouseX).text(timeFormatSecond(cur_time));
+  });
 
   //////////
   // HIGHLIGHT GROUP //
