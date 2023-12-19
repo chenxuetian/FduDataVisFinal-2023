@@ -102,7 +102,6 @@ VolumeFig.prototype.show = function (types, data) {
   const brushed = function ({ selection }) {
     if (selection === null) return;
     const [time0, time1] = selection.map(xScale.invert);
-    console.log(time0, time1);
     // 显示时间条
     time_rect_start.attr("x", xScale(time0) - 30).attr("opacity", 1);
     time_rect_end.attr("x", xScale(time1) - 30).attr("opacity", 1);
@@ -111,15 +110,15 @@ VolumeFig.prototype.show = function (types, data) {
     // 时间戳设定为第一帧
     ts0 = Math.floor(time0.getTime() / 1000);
     ts1 = Math.floor(time1.getTime() / 1000);
-    // console.log(ts);
     fetch(`http://127.0.0.1:5100/get_data_by_ts?ts=${ts0}`)
       .then((response) => response.json())
       .then((data) => mainfig.renderObject(data));
 
     ats0 = Math.floor(ts0 / 60) * 60;
     ats1 = Math.ceil(ts1 / 60) * 60;
-    console.log(ats0, ats1);
-    fetch(`http://127.0.0.1:5100/get_heatmap_data?ts0=${ats0}&ts1=${ats1}`)
+    fetch(
+      `http://127.0.0.1:5100/get_heatmap_data_by_ts?ts0=${ats0}&ts1=${ats1}`
+    )
       .then((response) => response.json())
       .then((data) => {
         heatfig.update(data);

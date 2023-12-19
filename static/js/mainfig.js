@@ -482,8 +482,6 @@ MainFig.prototype.renderObject = async function (data) {
 
 MainFig.prototype.updateObject = async function (transition) {
   var self = this;
-  console.log(this.cur_time_stamp, this.cur_time_stamp_idx);
-  console.log(this.cur_time_stamp, this.cur_time_stamp_idx);
   const reformulatePos = this.reformulatePos;
   const projection = this.projection;
   var datagroup = self.datagroup;

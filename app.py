@@ -44,22 +44,14 @@ def get_init_map_data():
 
 @app.route('/get_jamfig_data', methods=["GET"])
 def get_jamfig_data():
-    with open("data_jam_10_processed.json",encoding='UTF-8') as f:
-        jamfig_data = json.load(f)
-    return json.dumps(jamfig_data)
-
-@app.route('/get_record_data', methods=["GET"])
-def get_record_data():
-    return json.dumps(model.record_data)
+    return json.dumps(model.jamfig_data)
 
 @app.route('/get_cluster_data', methods=["GET"])
 def get_cluster_data():
-    df1 = pd.read_csv('static/csv/stats_with_cluster_types.csv', sep=",")
-    df2 = pd.read_csv('static/csv/grouped_stats.csv', sep=",")
-    return json.dumps([df1.loc[:].to_dict(orient="records"), df2.loc[:].to_dict(orient="records")])
+    return json.dumps([model.cluster_types, model.grouped_stats])
 
-@app.route("/get_heatmap_data")
-def get_heatmap_data():
+@app.route("/get_heatmap_data_by_ts")
+def get_heatmap_data_by_ts():
     init = request.args.get('init', "False") == "True"
     ts0 = int(request.args.get('ts0', -1))
     ts1 = int(request.args.get('ts1', -1))

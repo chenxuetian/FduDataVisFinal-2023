@@ -2,7 +2,7 @@ function HeatFig(pos, size) {
   var self = this;
   this.x = pos.x;
   this.y = pos.y;
-  this.margin = { top: 0, right: 0, bottom: 0, left: 20 };
+  this.margin = { top: 5, right: 0, bottom: 0, left: 5 };
   this.outerWidth = size.width;
   this.outerHeight = size.height;
   this.innerWidth = size.width - this.margin.left - this.margin.right;
@@ -128,8 +128,6 @@ function HeatFig(pos, size) {
   // 绘制数据函数
   // 遍历每个时间戳的数据
   this.plot = function (data) {
-    console.log(`Heatmap updating starts with ${data.length} points.`);
-
     data.forEach((d) => {
       proj = self.projection([d.x, d.y]);
       d.x = proj[0];
@@ -164,8 +162,6 @@ function HeatFig(pos, size) {
         .attr("r", 3.5) // 半径，可以根据需要调整
         .style("fill", "url(#gradient" + i + ")");
     });
-
-    console.log("Heatmap updating ends");
   };
 }
 
