@@ -3,16 +3,30 @@ function ClusterFig(pos, size) {
   // 初始化设置
   this.width = size.width;
   this.height = size.height;
-  this.margin = { top: 10, right: 100, bottom: 20, left: 25 };
+  this.margin = { top: 20, right: 10, bottom: 20, left: 10 };
   this.legendWidth = 50;
   this.x = pos.x;
   this.y = pos.y;
+
   this.outerWidth = size.width;
   this.outerHeight = size.height;
   this.innerWidth = size.width - this.margin.left - this.margin.right;
   this.innerHeight = size.height - this.margin.top - this.margin.bottom;
 
-  // 视图
+  this.paralPos = { x: 0, y: 0 };
+  this.paralSize = {
+    width: (this.innerWidth / 10) * 6,
+    height: this.innerHeight,
+  };
+  this.radioPos = { x: this.paralSize.width, y: 0 };
+  this.radioSize = {
+    width: (this.innerWidth / 10) * 3,
+    height: this.innerHeight,
+  };
+  this.legendPos = { x: this.radioPos.x + this.radioSize.width, y: 0 };
+  this.legendSize = { width: this.innerWidth / 10, height: this.innerHeight };
+
+  // 完整视图
   this.fig = d3
     .select("#mainsvg")
     .append("svg")
@@ -22,13 +36,34 @@ function ClusterFig(pos, size) {
     .attr("width", this.outerWidth)
     .attr("height", this.outerHeight);
 
-  //   // 数据
-  //   this.allData = allData;
-  //   this.groupedData = groupedData;
+  this.paralfig = this.fig
+    .append("svg")
+    .attr("id", "paralfig")
+    .attr("x", this.paralPos.x)
+    .attr("y", this.paralPos.y)
+    .attr("width", this.paralSize.width)
+    .attr("height", this.paralSize.height);
+
+  this.radiofig = this.fig
+    .append("svg")
+    .attr("id", "radiofig")
+    .attr("x", this.radioPos.x)
+    .attr("y", this.radioPos.y)
+    .attr("width", this.radioSize.width)
+    .attr("height", this.radioSize.height);
+
+  this.legend = this.fig
+    .append("svg")
+    .attr("id", "legend")
+    .attr("x", this.legendPos.x)
+    .attr("y", this.legendPos.y)
+    .attr("width", this.legendSize.width)
+    .attr("height", this.legendSize.height);
+
   // 其他属性初始化
   this.dimensions = [
     "mean_velocity",
-    "mean_acceleration",
+    "max_acceleration",
     "rapid_acceleration_count",
     "occupy_count",
     "overspeed_count",
@@ -36,7 +71,7 @@ function ClusterFig(pos, size) {
   ];
   this.dimensionNames = {
     mean_velocity: "平均速度",
-    mean_acceleration: "平均加速度",
+    max_acceleration: "最大加速度",
     rapid_acceleration_count: "急加速/急减速次数",
     occupy_count: "占道次数",
     overspeed_count: "超速次数",
@@ -44,9 +79,9 @@ function ClusterFig(pos, size) {
   };
 
   this.CLUSTER_COLORS = {
-    0: "#0e2d8b", // 颜色1
-    1: "#1d8a1a", // 颜色2
-    2: "#ea16c7",
+    0: "#009E13", // 颜色1
+    1: "#D2D200", // 颜色2
+    2: "#BD1919",
   };
   this.TYPE = {
     1: "小型车辆",
@@ -65,25 +100,21 @@ function ClusterFig(pos, size) {
     .domain(Object.keys(this.CLUSTER_COLORS))
     .range(Object.values(this.CLUSTER_COLORS));
 
-  // 创建group和legend组
-  this.datagroup = this.fig.append("g").attr("id", "datagroup");
-  this.legend = this.fig
-    .append("g")
-    .attr("id", "legend")
-    .attr("transform", `translate(${this.width - 200}, 30)`); // 调整图例的位置
+  // 创建group
+  this.paralDataGroup = this.paralfig.append("g").attr("id", "paralDataGroup");
 
   // 选择选项
   this.SELECTED_TYPE = 1; // 1 or 3
   this.SELECTED_CLUSTER = null;
 }
 
-ClusterFig.prototype.show = function (allData, groupedData) {
+ClusterFig.prototype.showParall = function (allData, groupedData) {
   var self = this;
   // 创建比例尺
   this.scaleX = d3
     .scalePoint()
     .domain(this.dimensions)
-    .range([0, this.innerWidth]);
+    .range([10, this.paralSize.width - 40]);
   this.scaleY = {};
   this.dimensions.forEach((d) => {
     self.scaleY[d] = {};
@@ -99,15 +130,16 @@ ClusterFig.prototype.show = function (allData, groupedData) {
       self.scaleY[d][type] = d3
         .scaleLinear()
         .domain([minval * 0.9, maxval * 1.1])
-        .range([self.innerHeight, 0]);
+        .range([self.paralSize.height - 50, 10])
+        .nice();
     });
   });
 
-  function renderAxises() {
+  this.renderAxises = function () {
     // 删除已有的轴
-    self.datagroup.selectAll(".dimension").remove();
+    self.paralDataGroup.selectAll(".dimension").remove();
     // 绘制各轴
-    Ys = self.datagroup
+    Ys = self.paralDataGroup
       .selectAll(".dimension")
       .data(self.dimensions)
       .enter()
@@ -127,14 +159,14 @@ ClusterFig.prototype.show = function (allData, groupedData) {
       .attr("y", -0.05 * self.innerHeight)
       .attr("text-anchor", "middle")
       .text((d) => self.dimensionNames[d]);
-  }
+  };
 
   function renderLines() {
     // Render Line
     // 创建一个折线路径生成器
     let lineGenerator = d3.line();
     // 绘制折线
-    self.datagroup
+    self.paralDataGroup
       .append("g")
       .selectAll(".line-all")
       .data(allData)
@@ -154,7 +186,7 @@ ClusterFig.prototype.show = function (allData, groupedData) {
       .attr("stroke-width", 0.5)
       .attr("opacity", 1);
     // 为groupedData绘制折线
-    self.datagroup
+    self.paralDataGroup
       .append("g")
       .selectAll(".line-all")
       .data(groupedData)
@@ -174,24 +206,40 @@ ClusterFig.prototype.show = function (allData, groupedData) {
       .attr("opacity", 0);
 
     // 移动group内所有元素，空出留白
-    self.datagroup.attr(
+    self.paralDataGroup.attr(
       "transform",
-      `translate(${self.margin.left}, ${self.margin.left})`
+      `translate(${self.margin.left}, ${self.margin.top})`
     );
   }
 
-  renderAxises();
+  this.renderAxises();
   renderLines();
+  // 只展现选中的type
+  self.paralDataGroup.selectAll(".line-all").attr("opacity", 0);
+  self.paralDataGroup
+    .selectAll(`.line-all.type-${self.SELECTED_TYPE}`)
+    .attr("opacity", 1);
 
+  // 在最下方显示标题
+  this.title_text = this.paralfig
+    .append("text")
+    .attr("x", this.paralSize.width / 2)
+    .attr("y", this.paralSize.height - 10)
+    .attr("text-anchor", "middle")
+    .text("小型客车聚类结果");
+};
+
+ClusterFig.prototype.showLegend = function () {
+  var self = this;
   // 绘制图例
   // 计算Cluster图例的起始位置
   let clusterLegendStartY = 20;
   // 绘制Cluster图例
   [0, 1, 2].forEach((cluster, i) => {
-    this.legend
+    self.legend
       .append("rect")
-      .attr("fill", this.colorScaleCluster(cluster))
-      .attr("x", 120)
+      .attr("fill", self.colorScaleCluster(cluster))
+      .attr("x", 0)
       .attr("y", clusterLegendStartY + i * 25)
       .attr("width", 15)
       .attr("height", 15)
@@ -200,78 +248,354 @@ ClusterFig.prototype.show = function (allData, groupedData) {
       .on("mouseover", function () {
         if (self.SELECTED_CLUSTER === null) {
           d3.select(this).attr("width", 20).attr("height", 20);
-          self.datagroup
+          self.paralDataGroup
             .selectAll(
               `.line-all.type-${self.SELECTED_TYPE}.cluster-${cluster}`
             )
             .attr("opacity", 1)
             .attr("stroke-width", 1);
+          self.radiofig
+            .selectAll(
+              `.poly-all.type-${self.SELECTED_TYPE}.cluster-${cluster}`
+            )
+            .selectAll("polygon")
+            .attr("opacity", 1)
+            .attr("stroke-width", 3);
         }
       })
       .on("mouseout", function () {
         if (self.SELECTED_CLUSTER === null) {
           d3.select(this).attr("width", 15).attr("height", 15);
-          self.datagroup
+          self.paralDataGroup
             .selectAll(
               `.line-all.type-${self.SELECTED_TYPE}.cluster-${cluster}`
             )
             .attr("stroke-width", 0.5);
+          self.radiofig
+            .selectAll(
+              `.poly-all.type-${self.SELECTED_TYPE}.cluster-${cluster}`
+            )
+            .selectAll("polygon")
+            .attr("stroke-width", 2);
         }
       })
       .on("click", function () {
         if (self.SELECTED_CLUSTER === null) {
           self.SELECTED_CLUSTER = cluster;
-          self.datagroup
+          self.paralDataGroup
             .selectAll(`.line-all.type-${self.SELECTED_TYPE}`)
+            .sort(
+              (a, b) =>
+                Number(a.Cluster == self.SELECTED_CLUSTER) -
+                Number(b.Cluster == self.SELECTED_CLUSTER)
+            ) // 将所选择的数据放到前面
             .attr("opacity", 0.1);
-          self.datagroup
+          self.paralDataGroup
             .selectAll(
-              `.line-all.type-${self.SELECTED_TYPE}.cluster-${cluster}`
+              `.line-all.type-${self.SELECTED_TYPE}.cluster-${self.SELECTED_CLUSTER}`
             )
+            .attr("opacity", 1);
+
+          // 对于雷达图同理
+          self.radiofig
+            .selectAll(`.poly-all.type-${self.SELECTED_TYPE}`)
+            .selectAll("polygon")
+            .sort(
+              (a, b) =>
+                Number(a.Cluster == self.SELECTED_CLUSTER) -
+                Number(b.Cluster == self.SELECTED_CLUSTER)
+            )
+            .attr("opacity", 0.1);
+          self.radiofig
+            .selectAll(
+              `.poly-all.type-${self.SELECTED_TYPE}.cluster-${cluster}`
+            )
+            .selectAll("polygon")
             .attr("opacity", 1);
         } else {
           if (self.SELECTED_CLUSTER === cluster) {
             self.SELECTED_CLUSTER = null;
-            self.datagroup
+            self.paralDataGroup
               .selectAll(`.line-all.type-${self.SELECTED_TYPE}`)
+              .attr("opacity", 1);
+            self.radiofig
+              .selectAll(`.poly-all.type-${self.SELECTED_TYPE}`)
+              .selectAll("polygon")
               .attr("opacity", 1);
           }
         }
       });
-    //   .on("mouseout", function () {
-    //     d3.select(this).attr("width", 15).attr("height", 15);
-    //     d3.selectAll(`.line-all`).attr("opacity", 1);
-    //   })
-    //   .on("click", function () {
-    //     let opacity =
-    //       d3.selectAll(`.line-grouped.type-${type}`).style("opacity") === "1"
-    //         ? 0
-    //         : 1;
-    //     d3.selectAll(`.line-grouped.type-${type}`).style("opacity", opacity);
-    //   });
-
-    // this.legend
-    //   .append("text")
-    //   .attr("x", 140)
-    //   .attr("y", clusterLegendStartY + i * 25 + 13)
-    //   .attr("font-size", 10)
-    //   .text(`${this.TYPE[type]}`);
-
-    // 选择不同的类型
-    this.selected_bottom = this.legend
-      .append("rect")
-      .attr("x", 120)
-      .attr("y", this.innerHeight - 20)
-      .attr("width", 50)
-      .attr("height", 30)
-      .attr("fill", "#CCCCCC")
-      .on("click", function () {
-        self.SELECTED_TYPE = self.SELECTED_TYPE === 1 ? 3 : 1;
-        renderAxises();
-        self.datagroup.selectAll(".line-all").attr("opacity", 0);
-        self.datagroup
-          .selectAll(`.line-all.type-${self.SELECTED_TYPE}`)
-          .attr("opacity", 1);
-      });
+    self.legend
+      .append("text")
+      .attr("x", 20)
+      .attr("y", clusterLegendStartY + i * 25 + 13)
+      .attr("font-size", 10)
+      .text(`类别${i + 1}`);
   });
+
+  // 选择不同的类型
+  typeSwitch = function () {
+    self.SELECTED_TYPE = self.SELECTED_TYPE === 1 ? 3 : 1;
+    self.renderAxises();
+    self.paralDataGroup.selectAll(".line-all").attr("opacity", 0);
+    self.paralDataGroup
+      .selectAll(`.line-all.type-${self.SELECTED_TYPE}`)
+      .attr("opacity", 1);
+    self.radiofig
+      .selectAll(`.poly-all`)
+      .selectAll("polygon")
+      .attr("opacity", 0);
+    self.radiofig
+      .selectAll(`.poly-all.type-${self.SELECTED_TYPE}`)
+      .selectAll("polygon")
+      .attr("opacity", 1);
+    self.title_text.text(
+      self.SELECTED_TYPE === 1 ? "小型客车聚类结果" : "非机动车聚类结果"
+    );
+  };
+  this.selected_bottom = this.legend
+    .append("rect")
+    .attr("x", 0)
+    .attr("y", this.legendSize.height - 30)
+    .attr("width", 50)
+    .attr("height", 30)
+    .attr("fill", "#CCCCCC")
+    .on("click", typeSwitch);
+  this.selected_text = this.legend
+    .append("text")
+    .attr("x", +this.selected_bottom.attr("x") + 25)
+    .attr("y", +this.selected_bottom.attr("y") + 20)
+    .attr("text-anchor", "middle")
+    .text("切换")
+    .on("click", typeSwitch);
+};
+
+ClusterFig.prototype.showRadio = function (allData, gropuedData) {
+  var self = this;
+  const dimensions = Object.values(self.dimensionNames);
+  const config = {
+    margins: { top: 80, left: 80, bottom: 50, right: 80 },
+    textColor: "black",
+    title: "基本雷达图",
+    radius: 70,
+    animateDuration: 1000,
+    tickNum: 5,
+    axisfillColor: ["white", "#ddd"],
+    axisStrokeColor: "#DDDDDD",
+    pointsColor: "white",
+    pointsSize: 3,
+  };
+  // 坐标尺
+
+  self.scaleRadius = {};
+  self.dimensions.forEach((d) => {
+    self.scaleRadius[d] = {};
+    Object.keys(self.TYPE).forEach((type) => {
+      let minval = Math.min(
+        d3.min(groupedData.filter((d) => +d.type === +type).map((e) => +e[d]))
+      );
+      let maxval = Math.max(
+        d3.max(groupedData.filter((d) => +d.type === +type).map((e) => +e[d]))
+      );
+      self.scaleRadius[d][type] = d3
+        .scaleLinear()
+        .domain([0, 1.1 * maxval])
+        .range([0, config.radius]);
+    });
+  });
+
+  // 渲染坐标轴
+  self.renderRadioAxes = function () {
+    // ----渲染背景多边形-----
+    const points = getPolygonPoints(
+      dimensions.length,
+      config.radius,
+      config.tickNum
+    );
+    const axes = self.radiofig
+      .append("g")
+      .attr("class", "axes")
+      .attr(
+        "transform",
+        "translate(" +
+          self.radioSize.width / 2 +
+          "," +
+          self.radioSize.height / 2 +
+          ")"
+      )
+      .selectAll("axis")
+      .data(points);
+
+    axes
+      .enter()
+      .append("polygon")
+      .attr("class", "axis")
+      .merge(axes)
+      .attr("points", (d) => d)
+      .attr("fill", (d, i) =>
+        i % 2 === 0 ? config.axisfillColor[0] : config.axisfillColor[1]
+      )
+      .attr("stroke", config.axisStrokeColor);
+
+    axes.exit().remove();
+
+    // ----渲染对角线-----
+    const line = d3.line();
+
+    const outerPoints = getOuterPoints(points[0]);
+
+    const lines = self.radiofig
+      .select(".axes")
+      .selectAll(".line")
+      .data(outerPoints);
+
+    lines
+      .enter()
+      .append("path")
+      .attr("class", "line")
+      .merge(lines)
+      .attr("d", (d) => {
+        return line([
+          [0, 0],
+          [d[0], d[1]],
+        ]);
+      })
+      .attr("stroke", config.axisStrokeColor);
+
+    lines.exit().remove();
+
+    //生成背景多边形的顶点
+    function getPolygonPoints(vertexNum, outerRadius, tickNum) {
+      const points = [];
+      let polygon;
+
+      if (vertexNum < 3) return points;
+
+      const anglePiece = (Math.PI * 2) / vertexNum;
+      const radiusReduce = outerRadius / tickNum;
+
+      for (let r = outerRadius; r > 0; r -= radiusReduce) {
+        polygon = [];
+
+        for (let i = 0; i < vertexNum; i++) {
+          polygon.push(
+            Math.sin(i * anglePiece) * r + "," + Math.cos(i * anglePiece) * r
+          );
+        }
+
+        points.push(polygon.join(" "));
+      }
+
+      return points;
+    }
+
+    //得到最外层多边形的顶点
+    function getOuterPoints(outerPoints) {
+      const points = outerPoints.split(" ").map((d) => d.split(","));
+      return points;
+    }
+  };
+
+  // 渲染文本标签
+  self.renderText = function () {
+    const texts = self.radiofig
+      .select(".axes")
+      .selectAll(".label")
+      .data(dimensions);
+
+    texts
+      .enter()
+      .append("text")
+      .attr("class", "label")
+      .merge(texts)
+      .attr(
+        "x",
+        (d, i) =>
+          Math.sin((i * Math.PI * 2) / dimensions.length) * (config.radius + 20)
+      )
+      .attr(
+        "y",
+        (d, i) =>
+          Math.cos((i * Math.PI * 2) / dimensions.length) * (config.radius + 20)
+      )
+      .attr("text-anchor", (d, i) => computeTextAnchor(dimensions, i))
+      .attr("dy", 6.5) //由于text-anchor属性在垂向上对齐文字底部，故需要使其对齐文字中部
+      .attr("font-size", "0.5em")
+      .text((d) => d);
+
+    function computeTextAnchor(data, i) {
+      if (data.length < 3) return;
+
+      const angle = (i * 360) / data.length;
+
+      if (angle === 0 || Math.abs(angle - 180) < 0.01) {
+        return "middle";
+      } else if (angle > 180) {
+        return "end";
+      } else {
+        return "start";
+      }
+    }
+  };
+
+  // 绘制图像
+  self.renderPolygons = function () {
+    // const newData = handleData(data);
+
+    const polygons = self.radiofig.selectAll(".polygons").data(groupedData);
+
+    polygons
+      .enter()
+      .append("g")
+      .attr("class", (d) => `poly-all type-${d.type} cluster-${d.Cluster}`)
+      .attr(
+        "transform",
+        "translate(" +
+          self.radioSize.width / 2 +
+          "," +
+          self.radioSize.height / 2 +
+          ")"
+      )
+      .append("polygon")
+      .attr("class", "polygon")
+      .merge(polygons)
+      .attr("fill", "none")
+      .attr("stroke", (d) => self.CLUSTER_COLORS[d.Cluster])
+      .attr("stroke-width", "2")
+      .attr("opacity", 0)
+      .attr("points", generatePolygons);
+
+    // 只显示当前type的数据
+    self.radiofig
+      .selectAll(`.poly-all.type-${self.SELECTED_TYPE}`)
+      .selectAll(".polygon")
+      .attr("opacity", 1);
+
+    polygons.exit().remove();
+
+    //计算多边形的顶点并生成顶点圆圈
+    function generatePolygons(d, index) {
+      const points = [];
+      const anglePiece = (Math.PI * 2) / self.dimensions.length;
+
+      self.dimensions.forEach(function (p, i) {
+        // console.log(self.scaleRadius[p][d.type](d[p]));
+        x = Math.sin(i * anglePiece) * self.scaleRadius[p][d.type](d[p]);
+        y = Math.cos(i * anglePiece) * self.scaleRadius[p][d.type](d[p]);
+        points.push(x + "," + y);
+      });
+      return points.join(" ");
+    }
+  };
+
+  // 绘制最终的雷达图
+  self.renderRadioAxes();
+  self.renderText();
+  self.renderPolygons();
+};
+
+ClusterFig.prototype.show = function (allData, groupedData) {
+  this.showParall(allData, groupedData);
+  this.showRadio(allData, groupedData);
+  this.showLegend();
 };
