@@ -378,7 +378,11 @@ MainFig.prototype.renderMap = async function (mapData) {
     .attr("stroke", "#CCCCCC")
     .attr("stroke-width", 1)
     .attr("fill", "#FFFFFF")
-    .attr("d", path);
+    .attr("d", path)
+    .attr("id", (d) => d.properties.fid)
+    .on("mouseover", function (event, d) {
+      console.log(d.properties.fid);
+    });
 
   let stopLinearMap = this.mapgroup
     .selectAll("stoplinear")
@@ -485,7 +489,6 @@ MainFig.prototype.updateObject = async function (transition) {
   const reformulatePos = this.reformulatePos;
   const projection = this.projection;
   var datagroup = self.datagroup;
-
 
   data = this.record_data;
   timeData = data[this.cur_time_stamp];
@@ -670,6 +673,17 @@ MainFig.prototype.play = async function () {
   }
 };
 
+MainFig.prototype.highlightCrosslines = function (selectedCrossing) {
+  if (selectedCrossing === -1) {
+    this.mapgroup.selectAll(".crosswalk").attr("stroke", "#CCCCCC");
+    return;
+  }
+  this.mapgroup
+    .selectAll(".crosswalk")
+    .attr("stroke", "#CCCCCC")
+    .filter((d) => crossinglines[selectedCrossing].includes(d.properties.fid))
+    .attr("stroke", "red");
+};
 
 MainFig.prototype.show = async function (cache, mapData) {
   // 绘制地图

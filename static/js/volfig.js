@@ -105,11 +105,19 @@ VolumeFig.prototype.show = function (types, data) {
     // 显示时间条
     time_rect_start.attr("x", xScale(time0) - 30).attr("opacity", 1);
     time_rect_end.attr("x", xScale(time1) - 30).attr("opacity", 1);
-    time_text_start.attr("x", xScale(time0)).text(timeFormatSecond(time0));
-    time_text_end.attr("x", xScale(time1)).text(timeFormatSecond(time1));
+    time_text_start
+      .attr("x", xScale(time0))
+      .text(timeFormatSecond(time0))
+      .attr("opacity", 1);
+    time_text_end
+      .attr("x", xScale(time1))
+      .text(timeFormatSecond(time1))
+      .attr("opacity", 1);
     // 时间戳设定为第一帧
     ts0 = Math.floor(time0.getTime() / 1000);
     ts1 = Math.floor(time1.getTime() / 1000);
+    // 折线图对应位置高亮
+    jamfig.highlightTime(ts0, ts1);
     fetch(`http://127.0.0.1:5100/get_data_by_ts?ts=${ts0}`)
       .then((response) => response.json())
       .then((data) => mainfig.renderObject(data));
@@ -123,7 +131,7 @@ VolumeFig.prototype.show = function (types, data) {
       .then((data) => {
         heatfig.update(data);
       });
-    queuefig.update({start:ts0,end:ts1})
+    queuefig.update({ start: ts0, end: ts1 });
     // // 读取一段时间的数据，用于进行统计热力图、拥堵图、排队图
     // ts_start = Math.floor(time0.getTime() / 1000);
     // ts_end = Math.floor(time1.getTime() / 1000);
@@ -142,7 +150,21 @@ VolumeFig.prototype.show = function (types, data) {
     ])
     .on("end", brushed);
 
-  this.fig.append("g").attr("id", "brushgroup").call(brusher);
+  this.fig
+    .append("g")
+    .attr("id", "brushgroup")
+    .call(brusher)
+    .on("dblclick", dblclicked);
+
+  function dblclicked() {
+    const selection = d3.brushSelection(this) ? null : projection.range();
+    d3.select(this).call(brusher.move, selection);
+    jamfig.highlightTime(null, null, (reset = true));
+    time_rect_start.attr("opacity", 0);
+    time_text_start.attr("opacity", 0);
+    time_text_end.attr("opacity", 0);
+    time_rect_end.attr("opacity", 0);
+  }
 
   //////////
   // CURSOR Line //
