@@ -84,7 +84,7 @@
       width: (WIDTH - MARGIN.left - MARGIN.right) / 4,
       height: (HEIGHT - MARGIN.top - MARGIN.bottom) / 4,
     };
-    const POS_HEAT = { x: POS_MAIN.x + SIZE_MAIN.width, y: POS_MAIN.y };
+    const POS_HEAT = { x: POS_MAIN.x + SIZE_MAIN.width, y: POS_MAIN.y+ SIZE_HEAT.height};
     const heatfig = new HeatFig(POS_HEAT, SIZE_HEAT);
 
     // jam_analysis
@@ -92,15 +92,15 @@
       width: (WIDTH - MARGIN.left - MARGIN.right) / 4,
       height: (HEIGHT - MARGIN.top - MARGIN.bottom) / 4,
     };
-    const POS_JAM= { x: POS_MAIN.x + SIZE_MAIN.width, y: POS_MAIN.y+SIZE_HEAT.height };
+    const POS_JAM= { x: POS_MAIN.x + SIZE_MAIN.width, y: POS_MAIN.y };
     const jamfig = new JamFig(POS_JAM,SIZE_JAM);
 
     // queue_analysis
     const SIZE_QUEUE = {
       width: (WIDTH - MARGIN.left - MARGIN.right) / 4,
-      height: (HEIGHT - MARGIN.top - MARGIN.bottom) *3/10,
+      height: (HEIGHT - MARGIN.top - MARGIN.bottom) /5,
     };
-    const POS_QUEUE= { x: POS_JAM.x, y: POS_JAM.y+SIZE_JAM.height };
+    const POS_QUEUE= { x: POS_JAM.x, y:  MARGIN.top };
     const queuefig = new QueueFig(POS_QUEUE,SIZE_QUEUE);
 
     // 个人ID视图

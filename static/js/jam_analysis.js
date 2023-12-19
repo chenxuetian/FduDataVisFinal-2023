@@ -168,7 +168,7 @@ JamFig.prototype.show = function (data){
             let temp = {c:cross, d:direction,value:Object.entries(data[cross][direction]).map((d) =>{ 
                 // console.log(d);
                 return [new Date(d[0]*1000 ),d[1]['v']]; })};
-            console.log(temp);
+            // console.log(temp);
             jamfig_svg.append("path")
                 .datum(temp)
                 .attr('class','lines')

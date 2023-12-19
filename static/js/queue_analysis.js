@@ -1,7 +1,7 @@
 function QueueFig(pos,size){
     this.x = pos.x;
     this.y = pos.y;
-    this.margin = { top: 10, right: 10, bottom: 15, left: 20 };
+    this.margin = { top: 20, right: 20, bottom: 20, left: 30 };
     this.outerWidth = size.width;
     this.outerHeight = size.height;
     this.innerWidth = size.width - this.margin.left - this.margin.right;
@@ -92,22 +92,58 @@ QueueFig.prototype.show = function (data){
         .attr("width", xScale.bandwidth());
 
 
+    const xAxis = d3.axisBottom(xScale);
+
+    svg.append("g")
+        .attr("transform", `translate(0, ${this.innerHeight})`) 
+        .call(xAxis)
+        .selectAll("text")
+        .style("font-size", "6px");
+
+    const yAxis = d3.axisLeft(yScale);
+
+    svg.append("g")
+        .call(yAxis)
+        .selectAll("text")
+        .style("font-size", "6px");
+
+    svg.append("text")
+        .attr("x", this.innerWidth / 2)
+        .attr("y", 0 - this.margin.top / 2)
+        .attr("text-anchor", "middle")
+        .style("font-size", "8px")
+        .text("路口停车数量堆叠柱状图");
+
+    svg.append("text")
+        .attr("x", this.innerWidth+ this.margin.right/2 -2)
+        .attr("y", this.innerHeight+ this.margin.bottom/2 + 3)             
+        .style("text-anchor", "middle")
+        .style("font-size", "6px")
+        .text("路口编号");
+     
+     svg.append("text")
+        .attr("y", 0 - this.margin.top / 2)
+        .attr("x", 0 - this.margin.left/2)
+        .attr("dy", "1em")
+        .style("text-anchor", "middle")
+        .style("font-size", "6px")
+        .text("停车数量");
 
     const legend = this.svg.selectAll(".legend")
         .data(colorScale.domain())
         .enter().append("g")
         .attr("class", "legend")
-        .attr("transform", (d, i) => `translate(0,${i * 10})`);
+        .attr("transform", (d, i) => `translate(0,${i * 7-15})`);
 
     legend.append("rect")
         .attr("x", this.innerWidth - 8)
         .attr("width", 8)
-        .attr("height", 8)
+        .attr("height", 4)
         .style("fill", colorScale);
 
     legend.append("text")
         .attr("x", this.innerWidth - 12)
-        .attr("y", 4)
+        .attr("y", 2)
         .attr("dy", ".35em")
         .style("text-anchor", "end")
         .style("font-size", "6px")  // 设置字体大小
