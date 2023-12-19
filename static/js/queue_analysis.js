@@ -49,7 +49,7 @@ QueueFig.prototype.show = function (data){
 
         for (const direction in data[crossing]) {
             for (const timestamp in data[crossing][direction]) {
-                aggregatedData[crossing][direction] = Math.max(aggregatedData[crossing][direction],data[crossing][direction][timestamp].stop_num);
+                aggregatedData[crossing][direction] = Math.max(aggregatedData[crossing][direction],data[crossing][direction][timestamp].stop_num*this.time_interval/60);
             }
         }
     }
@@ -87,7 +87,24 @@ QueueFig.prototype.show = function (data){
         .attr("x", d => this.xScale(d.data.crossing))
         .attr("y", d => this.yScale(d[1]))
         .attr("height", d => this.yScale(d[0]) - this.yScale(d[1]))
-        .attr("width", this.xScale.bandwidth());
+        .attr("width", this.xScale.bandwidth())
+        .on('mouseover',(event,d)=>{
+            console.log(d);
+            tooltip.style("opacity", 1);
+            tooltip
+            .html(
+                "<p>" +
+                `累计排队${Math.floor(d[1]-d[0])}分钟` +
+                "</p>" 
+            )
+            .style("left", event.pageX + 15 + "px")
+            .style("top", event.pageY - 28 + "px");
+        })
+        .on('mouseout', (event,d) => {
+            tooltip.style("opacity", 0)
+            .style("left", event.pageX + 1000 + "px")
+            .style("top", event.pageY  + "px");
+        });
 
 
     const xAxis = d3.axisBottom(this.xScale);
@@ -112,7 +129,7 @@ QueueFig.prototype.show = function (data){
         .attr("y", 0 - this.margin.top / 2)
         .attr("text-anchor", "middle")
         .style("font-size", "8px")
-        .text("路口停车数量堆叠柱状图");
+        .text("路口停车时间堆叠柱状图");
 
     svg.append("text")
         .attr("x", this.innerWidth+ this.margin.right/2 -2)
@@ -123,11 +140,11 @@ QueueFig.prototype.show = function (data){
      
      svg.append("text")
         .attr("y", 0 - this.margin.top / 2)
-        .attr("x", 0 - this.margin.left/2)
+        .attr("x", 0)
         .attr("dy", "1em")
         .style("text-anchor", "middle")
         .style("font-size", "6px")
-        .text("停车数量");
+        .text("累计排队时间/min");
 
     const legend = this.svg.selectAll(".legend")
         .data(this.colorScale.domain())
@@ -179,7 +196,7 @@ QueueFig.prototype.update = function (time){
             if(s>e) console.log("Error for selecting time.");
             console.log([s,e])
             console.log(temp[e]);
-            aggregatedData[cross][direction] = temp[e]['stop_num'] - temp[s]['stop_num'];
+            aggregatedData[cross][direction] = this.time_interval/60*(temp[e]['stop_num'] - temp[s]['stop_num']);
         }
         
     }
@@ -192,6 +209,21 @@ QueueFig.prototype.update = function (time){
 
     const stackedData = this.stack(processedData);
     console.log(stackedData);
+
+    // resize the Y axis
+    this.yScale = d3.scaleLinear()
+        .domain([0, d3.max(stackedData, d => d3.max(d, d => d[1]))])
+        .range([this.innerHeight, 0]);
+
+    const yAxis = d3.axisLeft(this.yScale);
+
+    this.svg.selectAll('.yAxis').remove();
+
+    this.svg.append("g")
+        .attr('class','yAxis')
+        .call(yAxis)
+        .selectAll("text")
+        .style("font-size", "6px");
 
     this.svg.selectAll(".stack_rect").remove();
 
@@ -206,6 +238,23 @@ QueueFig.prototype.update = function (time){
         .attr("x", d => this.xScale(d.data.cross))
         .attr("y", d => this.yScale(d[1]))
         .attr("height", d => this.yScale(d[0]) - this.yScale(d[1]))
-        .attr("width", this.xScale.bandwidth());
+        .attr("width", this.xScale.bandwidth())
+        .on('mouseover',(event,d)=>{
+            console.log(d);
+            tooltip.style("opacity", 1);
+            tooltip
+            .html(
+                "<p>" +
+                `累计排队${Math.floor(d[1]-d[0])}分钟` +
+                "</p>" 
+            )
+            .style("left", event.pageX + 15 + "px")
+            .style("top", event.pageY - 28 + "px");
+        })
+        .on('mouseout', (event,d) => {
+            tooltip.style("opacity", 0)
+            .style("left", event.pageX + 1000 + "px")
+            .style("top", event.pageY  + "px");
+        });
 
 }
