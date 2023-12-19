@@ -110,10 +110,18 @@ VolumeFig.prototype.show = function (types, data) {
     time_text_end.attr("x", xScale(time1)).text(timeFormatSecond(time1));
     // 时间戳设定为第一帧
     ts = Math.floor(time0.getTime() / 1000);
-    console.log(ts);
+    // console.log(ts);
     fetch(`http://127.0.0.1:5100/get_data_by_ts?ts=${ts}`)
       .then((response) => response.json())
       .then((data) => mainfig.renderObject(data));
+    // // 读取一段时间的数据，用于进行统计热力图、拥堵图、排队图
+    // ts_start = Math.floor(time0.getTime() / 1000);
+    // ts_end = Math.floor(time1.getTime() / 1000);
+    // fetch(
+    //   `http://127.0.0.1:5100/get_pos_data_by_two_ts?ts0=${ts_start}&ts1=${ts_end}`
+    // )
+    //   .then((response) => response.json())
+    //   .then((posData) => heatfig.update(posData));
   };
 
   var brusher = d3
