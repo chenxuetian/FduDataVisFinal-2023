@@ -76,6 +76,9 @@
         })
         .attr("left_b_id", function (d) {return d.properties.left_boundary_id;})
         .attr("right_b_id", function (d) {return d.properties.right_boundary_id;})
+        .on('mouseover',(event,d) =>{
+            console.log(d);
+        })
         ;
  
         
