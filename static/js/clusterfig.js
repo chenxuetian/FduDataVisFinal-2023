@@ -15,16 +15,16 @@ function ClusterFig(pos, size) {
 
   this.paralPos = { x: 0, y: 0 };
   this.paralSize = {
-    width: (this.innerWidth / 10) * 6,
-    height: this.innerHeight,
+    width: (this.innerWidth / 3) * 2,
+    height: this.outerHeight,
   };
   this.radioPos = { x: this.paralSize.width, y: 0 };
   this.radioSize = {
-    width: (this.innerWidth / 10) * 3,
-    height: this.innerHeight,
+    width: (this.innerWidth / 15) * 4,
+    height: this.outerHeight,
   };
   this.legendPos = { x: this.radioPos.x + this.radioSize.width, y: 0 };
-  this.legendSize = { width: this.innerWidth / 10, height: this.innerHeight };
+  this.legendSize = { width: this.innerWidth / 15, height: this.outerHeight };
 
   // 完整视图
   this.fig = d3
@@ -35,6 +35,16 @@ function ClusterFig(pos, size) {
     .attr("y", this.y)
     .attr("width", this.outerWidth)
     .attr("height", this.outerHeight);
+
+  // 边框
+  this.fig
+    .append("rect")
+    .attr("width", this.outerWidth)
+    .attr("height", this.outerHeight)
+    .attr("fill", "none")
+    .attr("stroke-width", 2.5)
+    .attr("stroke", "black");
+  // 各子图
 
   this.paralfig = this.fig
     .append("svg")
@@ -79,9 +89,9 @@ function ClusterFig(pos, size) {
   };
 
   this.CLUSTER_COLORS = {
-    0: "#009E13", // 颜色1
-    1: "#D2D200", // 颜色2
-    2: "#BD1919",
+    0: "#f58231", // 颜色1
+    1: "#dcbeff", // 颜色2
+    2: "#3cb44b",
   };
   this.TYPE = {
     1: "小型车辆",
@@ -114,7 +124,7 @@ ClusterFig.prototype.showParall = function (allData, groupedData) {
   this.scaleX = d3
     .scalePoint()
     .domain(this.dimensions)
-    .range([10, this.paralSize.width - 40]);
+    .range([20, this.paralSize.width - 40]);
   this.scaleY = {};
   this.dimensions.forEach((d) => {
     self.scaleY[d] = {};
@@ -130,7 +140,7 @@ ClusterFig.prototype.showParall = function (allData, groupedData) {
       self.scaleY[d][type] = d3
         .scaleLinear()
         .domain([minval * 0.9, maxval * 1.1])
-        .range([self.paralSize.height - 50, 10])
+        .range([this.innerHeight - 30, 10])
         .nice();
     });
   });
@@ -156,7 +166,7 @@ ClusterFig.prototype.showParall = function (allData, groupedData) {
     Ys.append("text")
       .attr("font-size", 10)
       .attr("x", 0)
-      .attr("y", -0.05 * self.innerHeight)
+      .attr("y", 0)
       .attr("text-anchor", "middle")
       .text((d) => self.dimensionNames[d]);
   };
@@ -221,7 +231,7 @@ ClusterFig.prototype.showParall = function (allData, groupedData) {
     .attr("opacity", 1);
 
   // 在最下方显示标题
-  this.title_text = this.paralfig
+  this.paraltitle_text = this.paralfig
     .append("text")
     .attr("x", this.paralSize.width / 2)
     .attr("y", this.paralSize.height - 10)
@@ -239,7 +249,7 @@ ClusterFig.prototype.showLegend = function () {
     self.legend
       .append("rect")
       .attr("fill", self.colorScaleCluster(cluster))
-      .attr("x", 0)
+      .attr("x", 20)
       .attr("y", clusterLegendStartY + i * 25)
       .attr("width", 15)
       .attr("height", 15)
@@ -327,7 +337,7 @@ ClusterFig.prototype.showLegend = function () {
       });
     self.legend
       .append("text")
-      .attr("x", 20)
+      .attr("x", 40)
       .attr("y", clusterLegendStartY + i * 25 + 13)
       .attr("font-size", 10)
       .text(`类别${i + 1}`);
@@ -349,14 +359,17 @@ ClusterFig.prototype.showLegend = function () {
       .selectAll(`.poly-all.type-${self.SELECTED_TYPE}`)
       .selectAll("polygon")
       .attr("opacity", 1);
-    self.title_text.text(
+    self.paraltitle_text.text(
       self.SELECTED_TYPE === 1 ? "小型客车聚类结果" : "非机动车聚类结果"
+    );
+    self.radiotitle_text.text(
+      self.SELECTED_TYPE === 1 ? "小型客车各类统计结果" : "非机动车各类统计结果"
     );
   };
   this.selected_bottom = this.legend
     .append("rect")
-    .attr("x", 0)
-    .attr("y", this.legendSize.height - 30)
+    .attr("x", 20)
+    .attr("y", this.innerHeight - 30)
     .attr("width", 50)
     .attr("height", 30)
     .attr("fill", "#CCCCCC")
@@ -420,7 +433,7 @@ ClusterFig.prototype.showRadio = function (allData, gropuedData) {
         "translate(" +
           self.radioSize.width / 2 +
           "," +
-          self.radioSize.height / 2 +
+          self.innerHeight / 2 +
           ")"
       )
       .selectAll("axis")
@@ -553,7 +566,7 @@ ClusterFig.prototype.showRadio = function (allData, gropuedData) {
         "translate(" +
           self.radioSize.width / 2 +
           "," +
-          self.radioSize.height / 2 +
+          self.innerHeight / 2 +
           ")"
       )
       .append("polygon")
@@ -592,6 +605,14 @@ ClusterFig.prototype.showRadio = function (allData, gropuedData) {
   self.renderRadioAxes();
   self.renderText();
   self.renderPolygons();
+
+  // 在最下方显示标题
+  this.radiotitle_text = this.radiofig
+    .append("text")
+    .attr("x", this.radioSize.width / 2)
+    .attr("y", this.radioSize.height - 10)
+    .attr("text-anchor", "middle")
+    .text("小型客车各类统计结果");
 };
 
 ClusterFig.prototype.show = function (allData, groupedData) {

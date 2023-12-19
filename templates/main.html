@@ -97,12 +97,20 @@
       8: [135, 136, 137, 138],
     };
 
+    // 个人ID视图
+    const SIZE_ID = {
+      width: (WIDTH - MARGIN.left - MARGIN.right) / 4,
+      height: (HEIGHT - MARGIN.top - MARGIN.bottom) / 4,
+    };
+    const POS_ID = { x: MARGIN.left, y: MARGIN.top };
+    // const idfig = new IdFig(POS_ID, SIZE_ID);
+
     // 车流量视图
     const SIZE_VOL = {
       width: (WIDTH - MARGIN.left - MARGIN.right) / 2,
       height: (HEIGHT - MARGIN.top - MARGIN.bottom) / 5,
     };
-    const POS_VOL = { x: MARGIN.left, y: MARGIN.top };
+    const POS_VOL = { x: POS_ID.x + MARGIN.left, y: MARGIN.top };
     const volfig = new VolumeFig(POS_VOL, SIZE_VOL);
 
     // 主视图
@@ -110,7 +118,10 @@
       width: (WIDTH - MARGIN.left - MARGIN.right) / 2,
       height: (HEIGHT - MARGIN.top - MARGIN.bottom) / 2,
     };
-    const POS_MAIN = { x: MARGIN.left, y: MARGIN.top + SIZE_VOL.height };
+    const POS_MAIN = {
+      x: POS_ID.x + MARGIN.left,
+      y: MARGIN.top + SIZE_VOL.height,
+    };
     const mainfig = new MainFig(POS_MAIN, SIZE_MAIN);
 
     // heatmap
@@ -129,7 +140,10 @@
       width: (WIDTH - MARGIN.left - MARGIN.right) / 4,
       height: (HEIGHT - MARGIN.top - MARGIN.bottom) / 4,
     };
-    const POS_JAM = { x: POS_MAIN.x + SIZE_MAIN.width, y: POS_MAIN.y };
+    const POS_JAM = {
+      x: POS_MAIN.x + SIZE_MAIN.width,
+      y: POS_MAIN.y,
+    };
     const jamfig = new JamFig(POS_JAM, SIZE_JAM);
 
     // queue_analysis
@@ -150,14 +164,6 @@
       y: POS_MAIN.y + SIZE_MAIN.height,
     };
     const clusterfig = new ClusterFig(POS_CLUSTER, SIZE_CLUSTER);
-
-    // 个人ID视图
-    // const SIZE_ID = {
-    //   width: (WIDTH - MARGIN.left - MARGIN.right) / 4,
-    //   height: (HEIGHT - MARGIN.top - MARGIN.bottom) / 4,
-    // };
-    // const POS_ID = { x: POS_HEAT.x, y: POS_HEAT.y + SIZE_HEAT.height };
-    // const idfig = new IdFig(POS_ID, SIZE_ID);
 
     // Total svg.
     const svg = d3.select("#mainsvg");
@@ -213,7 +219,7 @@
             _typeClusterData = rawAllData.filter(function (d) {
               return d.type === type && d.Cluster === cluster;
             });
-            allData = [...allData, ..._typeClusterData.slice(0, 200)];
+            allData = [...allData, ..._typeClusterData.slice(0, 100)];
             console.log(type, cluster, _typeClusterData.length);
           });
         });

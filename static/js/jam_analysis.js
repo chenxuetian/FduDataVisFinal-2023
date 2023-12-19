@@ -20,7 +20,7 @@ function JamFig(pos, size) {
     .append("rect")
     .attr("fill-opacity", 0)
     .attr("stroke-opacity", 1)
-    .attr("stroke-width", 1)
+    .attr("stroke-width", 2.5)
     .attr("stroke", "black")
     .attr("width", this.outerWidth)
     .attr("height", this.outerHeight);
