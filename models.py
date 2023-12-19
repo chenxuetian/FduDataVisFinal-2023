@@ -1,6 +1,7 @@
 import os
 import json
 import pickle
+import pandas as pd
 from scipy.sparse import coo_matrix
 
 import util
@@ -8,6 +9,7 @@ import util
 
 data_dir = "data/1.3_traffic"
 id_dir = "merged_data_ids/1.3_traffic/"
+pdata_dir = "static/data"
 
 
 class Model:
@@ -41,14 +43,16 @@ class Model:
             with open(os.path.join(data_dir, "road2-12-9road", f"{road}road_with9road.geojson")) as f:
                 self.map_data.append(json.load(f)) 
         
-        with open("vehicles_lane_data.json") as f:
-            self.record_data = json.load(f)
-        
-        with open("data_volume.json", encoding="utf-8") as f:
-            self.volume_data = json.load(f)
+        self.volume_data = pd.read_csv(os.path.join(pdata_dir, "data_volume.csv")).to_dict(orient="records")
 
-        with open("data_heatmap.pkl", "rb") as f:
+        with open(os.path.join(pdata_dir, "data_heatmap.pkl"), "rb") as f:
             self.heatmap_data = pickle.load(f)
+
+        with open(os.path.join(pdata_dir, "data_jam_10_processed.json"),encoding='UTF-8') as f:
+            self.jamfig_data = json.load(f)
+
+        self.cluster_types = pd.read_csv(os.path.join(pdata_dir, "stats_with_cluster_types.csv")).to_dict(orient="records")
+        self.grouped_stats = pd.read_csv(os.path.join(pdata_dir, "grouped_stats.csv")).to_dict(orient="records")
 
         print("Data prepared.")
 

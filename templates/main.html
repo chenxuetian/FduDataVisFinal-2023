@@ -1,7 +1,12 @@
 <!DOCTYPE html>
 <head>
   <meta charset="UTF-8" />
-  <title>Demo</title>
+  <title>Traf-VisuAnalysis</title>
+  <link
+    rel="icon"
+    href="{{url_for('static', filename='favicon.ico')}}"
+    type="image/x-icon"
+  />
 </head>
 
 <style>
@@ -102,7 +107,10 @@
       width: (WIDTH - MARGIN.left - MARGIN.right) / 4,
       height: (HEIGHT - MARGIN.top - MARGIN.bottom) / 4,
     };
-    const POS_HEAT = { x: POS_MAIN.x + SIZE_MAIN.width, y: POS_MAIN.y+ SIZE_HEAT.height};
+    const POS_HEAT = {
+      x: POS_MAIN.x + SIZE_MAIN.width,
+      y: POS_MAIN.y + SIZE_HEAT.height,
+    };
     const heatfig = new HeatFig(POS_HEAT, SIZE_HEAT);
 
     // jam_analysis
@@ -110,16 +118,16 @@
       width: (WIDTH - MARGIN.left - MARGIN.right) / 4,
       height: (HEIGHT - MARGIN.top - MARGIN.bottom) / 4,
     };
-    const POS_JAM= { x: POS_MAIN.x + SIZE_MAIN.width, y: POS_MAIN.y };
-    const jamfig = new JamFig(POS_JAM,SIZE_JAM);
+    const POS_JAM = { x: POS_MAIN.x + SIZE_MAIN.width, y: POS_MAIN.y };
+    const jamfig = new JamFig(POS_JAM, SIZE_JAM);
 
     // queue_analysis
     const SIZE_QUEUE = {
       width: (WIDTH - MARGIN.left - MARGIN.right) / 4,
-      height: (HEIGHT - MARGIN.top - MARGIN.bottom) /5,
+      height: (HEIGHT - MARGIN.top - MARGIN.bottom) / 5,
     };
-    const POS_QUEUE= { x: POS_JAM.x, y:  MARGIN.top };
-    const queuefig = new QueueFig(POS_QUEUE,SIZE_QUEUE);
+    const POS_QUEUE = { x: POS_JAM.x, y: MARGIN.top };
+    const queuefig = new QueueFig(POS_QUEUE, SIZE_QUEUE);
 
     // 聚类结果
     const SIZE_CLUSTER = {
@@ -171,7 +179,7 @@
       fetch("http://127.0.0.1:5100/get_init_map_data").then((response) =>
         response.json()
       ),
-      fetch("http://127.0.0.1:5100/get_heatmap_data?init=True").then(
+      fetch("http://127.0.0.1:5100/get_heatmap_data_by_ts?init=True").then(
         (response) => response.json()
       ),
     ]).then((data) => {

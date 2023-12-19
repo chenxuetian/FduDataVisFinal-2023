@@ -4,6 +4,8 @@ import pickle
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+import geopandas as gpd
+from shapely.geometry import Point
 from collections import defaultdict
 
 
@@ -57,34 +59,6 @@ def merge_records(data_dir, id_dir, intervals):
         print(f"\tSelected ids are stored in ./{stored_fname}.")
 
 
-def read_data(data_dir, id_dir=None, interval=None):
-    if id_dir and interval:
-        assert os.path.exists(os.path.join(id_dir, f"mdata_{interval}.pkl")), f"Merged_data_id file with interval {interval}s does not exist!"
-        with open(os.path.join(id_dir, f"mdata_{interval}.pkl"), 'rb') as f:
-            selected = pickle.load(f)
-    else:
-        selected = None
-    
-    data_files = sorted([os.path.join(data_dir, fname) for fname in os.listdir(data_dir) if fname.endswith(".json")])
-    all_records = []
-    for fid, data_file in enumerate(data_files):
-        records = []
-        lid = 0
-        with open(data_file) as f:
-            while line := f.readline():
-                if selected and selected[fid][lid]:
-                    rec = (json.loads(line))
-                    rec["position"] = json.loads(rec["position"])
-                    rec["shape"] = json.loads(rec["shape"])    
-                    records.append(rec)                    
-                lid += 1
-        all_records.extend(records)
-
-    print(f"Successfully read {len(all_records)} records.")
-    df = pd.DataFrame(all_records)
-    del all_records
-    return df
-
 def read_data_pandas(data_dir, id_dir, interval):
     assert os.path.exists(os.path.join(id_dir, f"mdata_{interval}.pkl")), f"Merged_data_id file with interval {interval}s does not exist!"
     with open(os.path.join(id_dir, f"mdata_{interval}.pkl"), 'rb') as f:
@@ -93,6 +67,7 @@ def read_data_pandas(data_dir, id_dir, interval):
 
     data_files = sorted([os.path.join(data_dir, fname) for fname in os.listdir(data_dir) if fname.endswith(".json")])
     all_records = []
+    num_dropped = 0
     with tqdm(total=num_records) as pbar:
         for fid, data_file in enumerate(data_files):
             lid = 0
@@ -105,11 +80,14 @@ def read_data_pandas(data_dir, id_dir, interval):
                         record.pop("ms_no")
                         record["position"] = json.loads(record["position"])
                         record["shape"] = json.loads(record["shape"])
-                        all_records.append(record)
+                        if record["shape"]["x"] < 0 or record["shape"]["y"] < 0:
+                            num_dropped += 1
+                        else:
+                            all_records.append(record)
                         pbar.update()              
                     lid += 1
-    assert len(all_records) == num_records
-    print(f"Successfully read {num_records} records.")
+    assert len(all_records) + num_dropped == num_records, f"len={len(all_records)}, dropped={num_dropped}, total={num_records}"
+    print(f"Successfully read {num_records} records. {num_dropped} records are dropped.")
     dtypes = {
         'id': np.int32, 
         'is_moving': np.int8, 
@@ -157,9 +135,6 @@ def add_records(data_dir, interval):
         records.append(record)
     return records
 
-
-import geopandas as gpd
-from shapely.geometry import Point
 
 def match_lane(position, lane_dir = 'lane_clean/lane_v3.geojson'):
     """
