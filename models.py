@@ -50,6 +50,9 @@ class Model:
 
         with open(os.path.join(pdata_dir, "data_jam_10_processed.json"),encoding='UTF-8') as f:
             self.jamfig_data = json.load(f)
+        for direction_records in self.jamfig_data.values():
+            for direction, records in direction_records.items():
+                direction_records[direction] = {key: value for key, value in records.items() if int(key) % 600 == 0} 
 
         self.cluster_types = pd.read_csv(os.path.join(pdata_dir, "stats_with_cluster_types.csv")).to_dict(orient="records")
         self.grouped_stats = pd.read_csv(os.path.join(pdata_dir, "grouped_stats.csv")).to_dict(orient="records")

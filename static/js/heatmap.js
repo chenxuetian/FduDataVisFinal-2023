@@ -31,50 +31,6 @@ function HeatFig(pos, size) {
     .attr("width", this.innerWidth)
     .attr("height", this.innerHeight);
 
-  this.showLegend = function () {
-    const legendWidth = 100; // 图例宽度
-    const legendHeight = 10; // 图例高度
-    const legendPosition = { x: 10, y: 20 }; // 图例位置
-
-    const legendScale = d3
-      .scaleLinear()
-      .domain([0, 1]) // 代表最小和最大的热力值
-      .range(["rgba(255, 0, 0, 0)", "rgba(255, 0, 0, 0.7)"]); // 与热力图的颜色和透明度相匹配
-
-    // 创建线性渐变
-    const linearGradient = this.svg
-      .append("defs")
-      .append("linearGradient")
-      .attr("id", "legend-gradient");
-
-    linearGradient
-      .selectAll("stop")
-      .data(legendScale.range())
-      .enter()
-      .append("stop")
-      .attr("offset", (d, i) => i * 100 + "%")
-      .attr("stop-color", (d) => d);
-
-    // 绘制图例条
-    this.svg
-      .append("rect")
-      .attr("x", legendPosition.x)
-      .attr("y", legendPosition.y)
-      .attr("width", legendWidth)
-      .attr("height", legendHeight)
-      .style("fill", "url(#legend-gradient)")
-      .attr("stroke-opacity", 1)
-      .attr("stroke-width", 0.5)
-      .attr("stroke", "gray");
-
-    this.svg
-      .append("text")
-      .attr("x", legendPosition.x)
-      .attr("y", legendPosition.y + legendHeight + 4)
-      .text("0")
-      .style("font-size", "5px");
-  };
-
   this.renderMap = function (mapData) {
     bound_data = mapData[0];
     cross_walk_data = mapData[1];
@@ -174,8 +130,6 @@ HeatFig.prototype.show = function (data, mapData) {
   this.renderMap(mapData);
   // 绘制数据
   this.plot(data);
-  // 绘制图例
-  this.showLegend();
 };
 
 HeatFig.prototype.update = function (data) {
