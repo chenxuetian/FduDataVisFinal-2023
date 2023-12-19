@@ -80,7 +80,7 @@ QueueFig.prototype.show = function (data) {
 
   this.colorScale = d3
     .scaleOrdinal(d3.schemeCategory10) // 使用 D3 的一个内置颜色方案
-    .domain(["left", "right", "down", "up"]);
+    .domain(["up", "left", "right", "down"]);
 
   svg
     .selectAll(".stack_rect")
@@ -156,6 +156,13 @@ QueueFig.prototype.show = function (data) {
     .style("font-size", "6px")
     .text("累计排队时间/min");
 
+  const labels = {
+    up: "北",
+    down: "南",
+    left: "西",
+    right: "东",
+  };
+
   const legend = this.svg
     .selectAll(".legend")
     .data(this.colorScale.domain())
@@ -178,7 +185,7 @@ QueueFig.prototype.show = function (data) {
     .attr("dy", ".35em")
     .style("text-anchor", "end")
     .style("font-size", "6px") // 设置字体大小
-    .text((d) => `${d}`);
+    .text((d) => labels[d]);
 };
 
 QueueFig.prototype.update = function (time) {

@@ -198,7 +198,7 @@ JamFig.prototype.show = function (data) {
     .call(d3.axisBottom(xScale).ticks(10).tickFormat(timeFormat))
     .style("font-size", "6px");
 
-  const ySclae = d3.scaleLinear().domain([0, 15]).range([this.innerHeight, 0]);
+  const ySclae = d3.scaleLinear().domain([0, 10]).range([this.innerHeight, 0]);
   const yAxis = jamfig_svg
     .append("g")
     .call(d3.axisLeft(ySclae))
@@ -219,11 +219,11 @@ JamFig.prototype.show = function (data) {
 
   const colorScale = d3
     .scaleOrdinal(d3.schemeCategory10) // 使用 D3 的一个内置颜色方案
-    .domain(["left", "right", "down", "up"]);
+    .domain(["up", "left", "right", "down"]);
 
   jamfig_svg
     .append("text")
-    .attr("y", 0 - this.margin.top / 2)
+    .attr("y", -15)
     .attr("x", 0 - this.margin.left / 2 + 5)
     .attr("dy", "1em")
     .style("text-anchor", "middle")
@@ -294,7 +294,7 @@ JamFig.prototype.show = function (data) {
     .append("text")
     .attr("x", 20)
     .attr("y", 10)
-    .text("选择路口")
+    .text("路口1")
     .style("cursor", "pointer")
     .style("font-size", "8px")
     .on("click", function () {
@@ -352,6 +352,13 @@ JamFig.prototype.show = function (data) {
   //       .attr("d", lineGenerator);
   // });
 
+  const labels = {
+    up: "北",
+    down: "南",
+    left: "西",
+    right: "东",
+  };
+
   const legend = this.svg
     .selectAll(".legend")
     .data(colorScale.domain())
@@ -374,7 +381,9 @@ JamFig.prototype.show = function (data) {
     .attr("dy", ".35em")
     .style("text-anchor", "end")
     .style("font-size", "6px") // 设置字体大小
-    .text((d) => `${d}`);
+    .text((d) => labels[d]);
+
+  updateChart(1);
 };
 
 JamFig.prototype.highlightTime = function (ts0, ts1, reset = false) {
@@ -388,9 +397,9 @@ JamFig.prototype.highlightTime = function (ts0, ts1, reset = false) {
   x1 = self.xScale(new Date(ts1 * 1000));
 
   // 设置遮挡矩形位置
-  this.rect_0.attr("width", x0).attr("opacity", 0.9);
+  this.rect_0.attr("width", x0).attr("opacity", 0.8);
   this.rect_1
     .attr("x", x1)
     .attr("width", this.innerWidth - x1)
-    .attr("opacity", 0.9);
+    .attr("opacity", 0.8);
 };
