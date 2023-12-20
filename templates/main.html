@@ -212,18 +212,20 @@
         return response.json();
       })
       .then((data) => {
-        rawAllData = data[0];
-        allData = [];
-        [1, 3].forEach(function (type, idx) {
-          [0, 1, 2].forEach(function (cluster, idx) {
-            _typeClusterData = rawAllData.filter(function (d) {
-              return d.type === type && d.Cluster === cluster;
-            });
-            allData = [...allData, ..._typeClusterData.slice(0, 100)];
-            console.log(type, cluster, _typeClusterData.length);
-          });
-        });
-        groupedData = data[1].filter((d) => d.type === 1 || d.type === 3);
+        // rawAllData = data[0];
+        // allData = [];
+        // [1, 3].forEach(function (type, idx) {
+        //   [0, 1, 2].forEach(function (cluster, idx) {
+        //     _typeClusterData = rawAllData.filter(function (d) {
+        //    return d.type === type && d.Cluster === cluster;
+        //    });
+        //    allData = [...allData, ..._typeClusterData.slice(0, 100)];
+        //    console.log(type, cluster, _typeClusterData.length);
+        //  });
+        //});
+        // groupedData = data[1].filter((d) => d.type === 1 || d.type === 3);
+        allData = data[0];
+        groupedData = data[1];
         clusterfig.show(allData, groupedData);
       });
   </script>

@@ -51,8 +51,13 @@ class Model:
         with open(os.path.join(pdata_dir, "data_jam_10_processed.json"),encoding='UTF-8') as f:
             self.jamfig_data = json.load(f)
 
-        self.cluster_types = pd.read_csv(os.path.join(pdata_dir, "stats_with_cluster_types.csv")).to_dict(orient="records")
-        self.grouped_stats = pd.read_csv(os.path.join(pdata_dir, "grouped_stats.csv")).to_dict(orient="records")
+        # self.cluster_types = pd.read_csv(os.path.join(pdata_dir, "stats_with_cluster_types.csv")).to_dict(orient="records")
+        # self.grouped_stats = pd.read_csv(os.path.join(pdata_dir, "grouped_stats.csv")).to_dict(orient="records")
+
+        with open(os.path.join(pdata_dir, "allData.json"),encoding='UTF-8') as f:
+            self.cluster_types = json.load(f)
+        with open(os.path.join(pdata_dir, "groupedData.json"),encoding='UTF-8') as f:
+            self.grouped_stats = json.load(f)
 
         print("Data prepared.")
 

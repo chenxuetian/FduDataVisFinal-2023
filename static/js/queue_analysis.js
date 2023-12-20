@@ -208,7 +208,7 @@ QueueFig.prototype.update = function (time) {
     });
     for (direction in data[cross]) {
       let temp = data[cross][direction];
-      console.log(temp);
+      // console.log(temp);
       for (s; s < e; s = s + interval) {
         if (s in temp) break;
       }
@@ -216,8 +216,8 @@ QueueFig.prototype.update = function (time) {
         if (e in temp) break;
       }
       if (s > e) console.log("Error for selecting time.");
-      console.log([s, e]);
-      console.log(temp[e]);
+      // console.log([s, e]);
+      // console.log(temp[e]);
       aggregatedData[cross][direction] =
         (this.time_interval / 60) * (temp[e]["stop_num"] - temp[s]["stop_num"]);
     }

@@ -383,7 +383,7 @@ ClusterFig.prototype.showLegend = function () {
     .on("click", typeSwitch);
 };
 
-ClusterFig.prototype.showRadio = function (allData, gropuedData) {
+ClusterFig.prototype.showRadio = function (allData, groupedData) {
   var self = this;
   const dimensions = Object.values(self.dimensionNames);
   const config = {
