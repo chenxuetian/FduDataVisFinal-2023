@@ -26,11 +26,10 @@ def get_data_by_ts():
     ts = int(request.args.get('ts', -1))
     return json.dumps(model.get_data_by_ts(ts))
 
-@app.route("/get_pos_data_by_two_ts", methods=["GET"])
-def get_pos_data_by_two_ts():
-    ts0 = int(request.args.get('ts0', -1))
-    ts1 = int(request.args.get('ts1', -1))
-    return json.dumps(model.get_pos_data_by_two_ts(ts0, ts1))
+@app.route("/get_data_by_id", methods=["GET"])
+def get_data_by_id():
+    vid = int(request.args.get('id', -1))
+    return json.dumps(model.get_data_by_id(vid))
 
 @app.route('/get_volume_data', methods=["GET"])
 def get_volume_data():
@@ -38,7 +37,7 @@ def get_volume_data():
 
 @app.route('/get_init_map_data', methods=["GET"])
 def get_init_map_data():
-    init_time = model.time_data.index.min()
+    init_time = model.time_range[0]
     init_records = model.get_data_by_ts(init_time)
     return json.dumps({"map_data": model.map_data, "cache_data": init_records})
 

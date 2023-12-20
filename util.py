@@ -99,7 +99,7 @@ def read_data_pandas(data_dir, id_dir, interval):
         'heading': np.float32,
         "time_meas": np.int32
     }
-    df = pd.DataFrame(all_records).astype(dtypes).set_index("time_meas").sort_index()
+    df = pd.DataFrame(all_records).astype(dtypes).set_index(["time_meas", "id"]).sort_index()
     return df
 
 

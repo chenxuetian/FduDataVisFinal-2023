@@ -34,7 +34,8 @@ class Model:
 
         self.interval = interval
         self.time_data = util.read_data_pandas(data_dir, id_dir, interval)
-        self.time_range = [self.time_data.index.min(), self.time_data.index.max()]
+        time_index = self.time_data.index.get_level_values("time_meas")
+        self.time_range = [time_index.min(), time_index.max()]
         
         self.map_grid_size = 3
         self.map_margin = {"x_min":-447, "x_max": 402, "y_min": -636, "y_max": 90}
@@ -62,14 +63,11 @@ class Model:
         print("Data prepared.")
 
     def get_data_by_ts(self, ts):
-        return self.time_data.loc[ts:ts+60-self.interval].groupby("time_meas").apply(lambda group: group.to_dict(orient='records')).to_dict()
-    
-    def get_pos_data_by_two_ts(self, ts0, ts1):
-        selected_time_data = self.time_data.loc[ts0:ts1-self.interval].groupby("time_meas").apply(lambda group: group.to_dict(orient='records'))
-        # pos_data = selected_time_data.apply(lambda group: {"type":group["type"], "position": {"x": group["position"]["x"], "y": group["position"]["y"]}}).to_dict()
-        pos_data = selected_time_data.apply(lambda group: [{"type": rec["type"], "position": {"x": rec["position"]["x"], "y": rec["position"]["y"]}} for rec in group]).to_dict()
-        return pos_data
+        return self.time_data.loc[ts:ts+60-self.interval].reset_index("id").groupby("time_meas").apply(lambda group: group.to_dict(orient='records')).to_dict()
 
+    def get_data_by_id(self, vid):
+        return self.time_data.loc[(slice(None), vid), :].reset_index("time_meas").to_dict(orient='records')
+    
     def get_heatmap_data_by_ts(self, ts0, ts1, init):
         if init:
             smatrix = coo_matrix(self.heatmap_data[self.time_range[1]])
