@@ -411,11 +411,6 @@ MainFig.prototype.renderObject = async function (data) {
   this.cache_data = data;
   await this.update_data();
 
-  // 初始化数据信息
-  this.record_data = null;
-  this.cache_data = data;
-  await this.update_data();
-
   // 初始化第一帧数据
   const timeData = this.record_data[this.cur_time_stamp];
   const reformulatePos = this.reformulatePos;
