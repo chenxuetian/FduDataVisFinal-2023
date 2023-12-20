@@ -673,16 +673,17 @@ MainFig.prototype.play = async function () {
   }
 };
 
+MainFig.prototype.NoHighlight = function(){
+  this.mapgroup.selectAll(".crosswalk").attr("stroke", "#CCCCCC");
+}
+
 MainFig.prototype.highlightCrosslines = function (selectedCrossing) {
-  if (selectedCrossing === -1) {
-    this.mapgroup.selectAll(".crosswalk").attr("stroke", "#CCCCCC");
-    return;
-  }
-  this.mapgroup
+  if(selectedCrossing in crossinglines){
+    this.mapgroup
     .selectAll(".crosswalk")
-    .attr("stroke", "#CCCCCC")
     .filter((d) => crossinglines[selectedCrossing].includes(d.properties.fid))
     .attr("stroke", "red");
+  }
 };
 
 MainFig.prototype.show = async function (cache, mapData) {

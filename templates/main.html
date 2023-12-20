@@ -63,6 +63,7 @@
   <script src="{{url_for('static', filename='js/jam_analysis.js')}}"></script>
   <script src="{{url_for('static', filename='js/clusterfig.js')}}"></script>
   <script src="{{url_for('static', filename='js/queue_analysis.js')}}"></script>
+  <script src="{{url_for('static', filename='js/idfig.js')}}"></script>
   <script>
     const MARGIN = { top: 20, right: 200, left: 200, bottom: 200 };
     const WIDTH = 1920,
@@ -100,17 +101,17 @@
     // 个人ID视图
     const SIZE_ID = {
       width: (WIDTH - MARGIN.left - MARGIN.right) / 4,
-      height: (HEIGHT - MARGIN.top - MARGIN.bottom) / 4,
+      height: HEIGHT - MARGIN.top - MARGIN.bottom,
     };
     const POS_ID = { x: MARGIN.left, y: MARGIN.top };
-    // const idfig = new IdFig(POS_ID, SIZE_ID);
+    const idfig = new IdFig(POS_ID, SIZE_ID);
 
     // 车流量视图
     const SIZE_VOL = {
       width: (WIDTH - MARGIN.left - MARGIN.right) / 2,
       height: (HEIGHT - MARGIN.top - MARGIN.bottom) / 5,
     };
-    const POS_VOL = { x: POS_ID.x + MARGIN.left, y: MARGIN.top };
+    const POS_VOL = { x: POS_ID.x + SIZE_ID.width, y: MARGIN.top };
     const volfig = new VolumeFig(POS_VOL, SIZE_VOL);
 
     // 主视图
@@ -119,7 +120,7 @@
       height: (HEIGHT - MARGIN.top - MARGIN.bottom) / 2,
     };
     const POS_MAIN = {
-      x: POS_ID.x + MARGIN.left,
+      x: POS_ID.x + SIZE_ID.width,
       y: MARGIN.top + SIZE_VOL.height,
     };
     const mainfig = new MainFig(POS_MAIN, SIZE_MAIN);
@@ -227,6 +228,7 @@
         allData = data[0];
         groupedData = data[1];
         clusterfig.show(allData, groupedData);
+        idfig.show(allData, groupedData);
       });
   </script>
 </body>

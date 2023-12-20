@@ -98,18 +98,20 @@ QueueFig.prototype.show = function (data) {
     .attr("height", (d) => this.yScale(d[0]) - this.yScale(d[1]))
     .attr("width", this.xScale.bandwidth())
     .on("mouseover", (event, d) => {
-      console.log(d);
       tooltip.style("opacity", 1);
       tooltip
         .html("<p>" + `累计排队${Math.floor(d[1] - d[0])}分钟` + "</p>")
         .style("left", event.pageX + 15 + "px")
         .style("top", event.pageY - 28 + "px");
+      mainfig.highlightCrosslines(d.data.crossing);
     })
     .on("mouseout", (event, d) => {
       tooltip
         .style("opacity", 0)
         .style("left", event.pageX + 1000 + "px")
         .style("top", event.pageY + "px");
+      mainfig.NoHighlight();
+      mainfig.highlightCrosslines(jamfig.selectedcross);
     });
 
   const xAxis = d3.axisBottom(this.xScale);
@@ -193,7 +195,6 @@ QueueFig.prototype.update = function (time) {
   let e = time.end;
   s = Math.floor(s / 10) * 10;
   e = Math.floor(e / 10) * 10;
-  console.log([s, e]);
 
   let data = this.data;
   let interval = this.time_interval;
@@ -216,21 +217,16 @@ QueueFig.prototype.update = function (time) {
         if (e in temp) break;
       }
       if (s > e) console.log("Error for selecting time.");
-      // console.log([s, e]);
-      // console.log(temp[e]);
       aggregatedData[cross][direction] =
         (this.time_interval / 60) * (temp[e]["stop_num"] - temp[s]["stop_num"]);
     }
   }
-  console.log(aggregatedData);
 
   const processedData = Object.keys(aggregatedData).map((cross) => {
     return { cross, ...aggregatedData[cross] };
   });
-  console.log(processedData);
 
   const stackedData = this.stack(processedData);
-  console.log(stackedData);
 
   // resize the Y axis
   this.yScale = d3
@@ -267,17 +263,19 @@ QueueFig.prototype.update = function (time) {
     .attr("height", (d) => this.yScale(d[0]) - this.yScale(d[1]))
     .attr("width", this.xScale.bandwidth())
     .on("mouseover", (event, d) => {
-      console.log(d);
       tooltip.style("opacity", 1);
       tooltip
         .html("<p>" + `累计排队${Math.floor(d[1] - d[0])}分钟` + "</p>")
         .style("left", event.pageX + 15 + "px")
         .style("top", event.pageY - 28 + "px");
+      mainfig.highlightCrosslines(d.data.cross);
     })
     .on("mouseout", (event, d) => {
       tooltip
         .style("opacity", 0)
         .style("left", event.pageX + 1000 + "px")
         .style("top", event.pageY + "px");
+      mainfig.NoHighlight();
+      mainfig.highlightCrosslines(jamfig.selectedcross);
     });
 };

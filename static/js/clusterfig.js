@@ -171,7 +171,7 @@ ClusterFig.prototype.showParall = function (allData, groupedData) {
       .text((d) => self.dimensionNames[d]);
   };
 
-  function renderLines() {
+  this.renderLines = function () {
     // Render Line
     // 创建一个折线路径生成器
     let lineGenerator = d3.line();
@@ -193,37 +193,44 @@ ClusterFig.prototype.showParall = function (allData, groupedData) {
       )
       .attr("fill", "none")
       .attr("stroke", (d) => self.colorScaleCluster(d["Cluster"]))
-      .attr("stroke-width", 0.5)
-      .attr("opacity", 1);
-    // 为groupedData绘制折线
+      .attr("stroke-width", 1)
+      .attr("opacity", 1)
+      .on("mouseover", function (event, d) {
+        if (
+          self.SELECTED_CLUSTER == null ||
+          d.Cluster == self.SELECTED_CLUSTER
+        ) {
+          d3.select(this).attr("stroke-width", 2).attr("stroke", "red");
+        }
+      }) // 高亮显示
+      .on("mouseout", function (event, d) {
+        if (
+          self.SELECTED_CLUSTER == null ||
+          d.Cluster == self.SELECTED_CLUSTER
+        ) {
+          d3.select(this)
+            .attr("stroke-width", 1)
+            .attr("stroke", (d) => self.colorScaleCluster(d["Cluster"]));
+        }
+      }) // 恢复原状
+      .on("click", function (event, d) {
+        // TODO: Select ID fig.
+      });
+
+    // 删掉不需要的线
     self.paralDataGroup
-      .append("g")
-      .selectAll(".line-all")
-      .data(groupedData)
-      .enter()
-      .append("path")
-      .attr("class", (d) => `line-grouped type-${d.type} cluster-${d.Cluster}`)
-      .attr("d", (d) =>
-        lineGenerator(
-          self.dimensions.map((p) => {
-            return [self.scaleX(p), self.scaleY[p][d.type](d[p])]; // 将每个维度的值映射到坐标轴上
-          })
-        )
-      )
-      .attr("fill", "none")
-      .attr("stroke", (d) => self.colorScaleCluster(d["Cluster"]))
-      .attr("stroke-width", 2)
-      .attr("opacity", 0);
+      .selectAll(`.line-all.type-${self.SELECTED_TYPE === 1 ? 3 : 1}`)
+      .remove();
 
     // 移动group内所有元素，空出留白
     self.paralDataGroup.attr(
       "transform",
       `translate(${self.margin.left}, ${self.margin.top})`
     );
-  }
+  };
 
   this.renderAxises();
-  renderLines();
+  this.renderLines();
   // 只展现选中的type
   self.paralDataGroup.selectAll(".line-all").attr("opacity", 0);
   self.paralDataGroup
@@ -296,8 +303,8 @@ ClusterFig.prototype.showLegend = function () {
             .selectAll(`.line-all.type-${self.SELECTED_TYPE}`)
             .sort(
               (a, b) =>
-                Number(a.Cluster == self.SELECTED_CLUSTER) -
-                Number(b.Cluster == self.SELECTED_CLUSTER)
+                Number(a.Cluster === self.SELECTED_CLUSTER) -
+                Number(b.Cluster === self.SELECTED_CLUSTER)
             ) // 将所选择的数据放到前面
             .attr("opacity", 0.1);
           self.paralDataGroup
@@ -312,8 +319,8 @@ ClusterFig.prototype.showLegend = function () {
             .selectAll("polygon")
             .sort(
               (a, b) =>
-                Number(a.Cluster == self.SELECTED_CLUSTER) -
-                Number(b.Cluster == self.SELECTED_CLUSTER)
+                Number(a.Cluster === self.SELECTED_CLUSTER) -
+                Number(b.Cluster === self.SELECTED_CLUSTER)
             )
             .attr("opacity", 0.1);
           self.radiofig
@@ -347,6 +354,7 @@ ClusterFig.prototype.showLegend = function () {
   typeSwitch = function () {
     self.SELECTED_TYPE = self.SELECTED_TYPE === 1 ? 3 : 1;
     self.renderAxises();
+    self.renderLines();
     self.paralDataGroup.selectAll(".line-all").attr("opacity", 0);
     self.paralDataGroup
       .selectAll(`.line-all.type-${self.SELECTED_TYPE}`)
