@@ -149,6 +149,7 @@ function JamFig(pos, size) {
       // selected_Lanes = selected_Lanes.concat(crossing_lane_map[crossing][direction].out_cross);
     }
   }
+  this.selectedcross=-1;
 }
 
 JamFig.prototype.show = function (data) {
@@ -309,6 +310,7 @@ JamFig.prototype.show = function (data) {
   // 创建选项组
   const optionsGroup = jamfig_svg.append("g");
 
+  var that = this;
   function showOptions(show) {
     optionsGroup.selectAll(".cross_id").remove();
 
@@ -329,12 +331,15 @@ JamFig.prototype.show = function (data) {
           isOpen = false;
           optionsGroup.selectAll(".cross_id").remove();
           updateChart(d); // 根据选择的路口更新图表
+          that.selectedcross = d;
+          mainfig.NoHighlight();
           mainfig.highlightCrosslines(d);
         });
     } else {
       jamfig_svg.selectAll(".lines").style("opacity", 1);
       currentSelection.text("选择路口");
-      mainfig.highlightCrosslines(-1);
+      that.selectedcross = -1;
+      mainfig.NoHighlight();
     }
   }
 
@@ -344,6 +349,7 @@ JamFig.prototype.show = function (data) {
         return 1;
       } else return 0;
     });
+
     console.log("Selected crossing:", selectedCrossing);
   }
 
