@@ -2,7 +2,7 @@ function HeatFig(pos, size) {
   var self = this;
   this.x = pos.x;
   this.y = pos.y;
-  this.margin = { top: 5, right: 0, bottom: 0, left: 5 };
+  this.margin = { top: 0, right: 0, bottom: 0, left: 0 };
   this.outerWidth = size.width;
   this.outerHeight = size.height;
   this.innerWidth = size.width - this.margin.left - this.margin.right;
@@ -130,6 +130,14 @@ HeatFig.prototype.show = function (data, mapData) {
   this.renderMap(mapData);
   // 绘制数据
   this.plot(data);
+
+  this.svg
+    .append("text")
+    .attr("x", this.innerWidth / 2)
+    .attr("y", 20)
+    .attr("text-anchor", "middle")
+    .style("font-size", "10px")
+    .text("车道热力图");
 };
 
 HeatFig.prototype.update = function (data) {
