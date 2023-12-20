@@ -48,10 +48,10 @@
   <!-- 主画布 -->
   <svg
     width="1920"
-    height="1280"
+    height="1000"
     id="mainsvg"
     class="svgs"
-    style="background-color: #ffffff; display: block; margin: 0 auto"
+    style="background-color: #eeeeee; display: block; margin: 0 auto"
   ></svg>
   <!-- 加载d3.v6 -->
   <script src="https://d3js.org/d3.v6.js"></script>
@@ -65,9 +65,9 @@
   <script src="{{url_for('static', filename='js/queue_analysis.js')}}"></script>
   <script src="{{url_for('static', filename='js/idfig.js')}}"></script>
   <script>
-    const MARGIN = { top: 20, right: 200, left: 200, bottom: 200 };
+    const MARGIN = { top: 50, right: 200, left: 200, bottom: 0 };
     const WIDTH = 1920,
-      HEIGHT = 1280;
+      HEIGHT = 1000;
 
     const TYPE2COLOR = {
       1: "#FA8828",
@@ -100,7 +100,7 @@
 
     // 个人ID视图
     const SIZE_ID = {
-      width: (WIDTH - MARGIN.left - MARGIN.right) / 4,
+      width: (WIDTH - MARGIN.left - MARGIN.right) / 5,
       height: HEIGHT - MARGIN.top - MARGIN.bottom,
     };
     const POS_ID = { x: MARGIN.left, y: MARGIN.top };

@@ -80,7 +80,7 @@ function IdFig(pos, size) {
   this.dimensionNames = {
     mean_velocity: "平均速度",
     max_acceleration: "最大加速度",
-    rapid_acceleration_count: "急加速/急减速次数",
+    rapid_acceleration_count: "急变速次数",
     occupy_count: "占道次数",
     overspeed_count: "超速次数",
     consecutive_lane_changes_count: "连续变道次数",
@@ -96,7 +96,7 @@ IdFig.prototype.renderId = function (allData, id) {
   const texts = [
     { label: "平均速度", field: "mean_velocity" },
     { label: "最大加速度", field: "max_acceleration" },
-    { label: "急加速/急减速次数", field: "rapid_acceleration_count" },
+    { label: "急变速次数", field: "rapid_acceleration_count" },
     { label: "占道次数", field: "occupy_count" },
     { label: "超速次数", field: "overspeed_count" },
     { label: "连续变道次数", field: "consecutive_lane_changes_count" },

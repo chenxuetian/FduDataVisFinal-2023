@@ -31,7 +31,7 @@ for i in trange(len(total_ts_minute)):
     else:
         start = end + interval
         end += 60
-    for pos in model.time_data.loc[start:end, "position"].to_list():
+    for pos in model.time_data.loc[start:end, "position"].reset_index("id").to_list():
         index_x = int((pos["x"] - xMin) / grid_size)
         index_y = int((pos["y"] - yMin) / grid_size)
         matrix[index_x, index_y] += 1

@@ -7,14 +7,24 @@ function VolumeFig(pos, size) {
   this.innerWidth = size.width - this.margin.left - this.margin.right;
   this.innerHeight = size.height - this.margin.top - this.margin.bottom;
 
-  this.fig = d3
+  this.svg = d3
     .select("#mainsvg")
     .append("svg")
     .attr("id", "volfig")
     .attr("x", this.x)
     .attr("y", this.y)
     .attr("width", this.outerWidth)
-    .attr("height", this.outerHeight)
+    .attr("height", this.outerHeight);
+
+  this.bound = this.svg
+    .append("rect")
+    .attr("fill-opacity", 0)
+    .attr("stroke-opacity", 1)
+    .attr("stroke-width", 2.5)
+    .attr("stroke", "black")
+    .attr("width", this.outerWidth)
+    .attr("height", this.outerHeight);
+  this.fig = this.svg
     .append("g")
     .attr("transform", `translate(${this.margin.left}, ${this.margin.top})`);
 }
@@ -141,14 +151,6 @@ VolumeFig.prototype.show = function (types, data) {
         heatfig.update(data);
       });
     queuefig.update({ start: ts0, end: ts1 });
-    // // 读取一段时间的数据，用于进行统计热力图、拥堵图、排队图
-    // ts_start = Math.floor(time0.getTime() / 1000);
-    // ts_end = Math.floor(time1.getTime() / 1000);
-    // fetch(
-    //   `http://127.0.0.1:5100/get_pos_data_by_two_ts?ts0=${ts_start}&ts1=${ts_end}`
-    // )
-    //   .then((response) => response.json())
-    //   .then((posData) => heatfig.update(posData));
   };
 
   var brusher = d3

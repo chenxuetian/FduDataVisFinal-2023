@@ -15,15 +15,15 @@ function ClusterFig(pos, size) {
 
   this.paralPos = { x: 0, y: 0 };
   this.paralSize = {
-    width: (this.innerWidth / 3) * 2,
+    width: mainfig.outerWidth + 30,
     height: this.outerHeight,
   };
   this.radioPos = { x: this.paralSize.width, y: 0 };
   this.radioSize = {
-    width: (this.innerWidth / 15) * 4,
+    width: (this.innerWidth / 15) * 3 + 20,
     height: this.outerHeight,
   };
-  this.legendPos = { x: this.radioPos.x + this.radioSize.width, y: 0 };
+  this.legendPos = { x: this.radioPos.x + this.radioSize.width + 10, y: 0 };
   this.legendSize = { width: this.innerWidth / 15, height: this.outerHeight };
 
   // 完整视图
@@ -82,7 +82,7 @@ function ClusterFig(pos, size) {
   this.dimensionNames = {
     mean_velocity: "平均速度",
     max_acceleration: "最大加速度",
-    rapid_acceleration_count: "急加速/急减速次数",
+    rapid_acceleration_count: "急变速次数",
     occupy_count: "占道次数",
     overspeed_count: "超速次数",
     consecutive_lane_changes_count: "连续变道次数",
