@@ -129,6 +129,26 @@ function MainFig(pos, size) {
     // 删除路径
     self.pathgroup.selectAll("path").remove();
   };
+  this.intoSelectedMode = function (id, data) {
+    self.SELECTED_ID = id;
+    self.SELECTED_MODE = true;
+    let idData = self.cvtIdData(data, id);
+    let idPosData = idData.map((d) => d["position"]);
+    // 加边框显示
+    self.datagroup
+      .select(`#id_${id}`)
+      .attr("stroke", "black")
+      .attr("stroke-width", 0.2)
+      .attr("selected", true);
+    // 其他的淡化
+    self.datagroup
+      .selectAll(".data_item")
+      .filter((d) => d["id"] != id)
+      .attr("opacity", 0.25)
+      .attr("selected", false);
+    // 绘制路径
+    self.paintPath(idPosData);
+  };
 
   this.paintPath = function (idPosData) {
     // 清除已有路径
@@ -196,24 +216,7 @@ function MainFig(pos, size) {
         !(d3.select(this).attr("selected") == "true")
       ) {
         const id = d3.select(this).data()[0]["id"];
-        const idData = self.cvtIdData(data, id);
-        self.SELECTED_MODE = true;
-        self.SELECTED_ID = id;
-        let idPosData = idData.map((d) => d["position"]);
-        let pathgroup = self.pathgroup;
-        // 加边框显示
-        d3.select(this)
-          .attr("stroke", "black")
-          .attr("stroke-width", 0.2)
-          .attr("selected", true);
-        // 其他的淡化
-        self.datagroup
-          .selectAll(".data_item")
-          .filter((d) => d["id"] != id)
-          .attr("opacity", 0.25)
-          .attr("selected", false);
-        // 绘制路径
-        self.paintPath(idPosData);
+        self.intoSelectedMode(id, data);
       }
     };
   };
@@ -456,7 +459,7 @@ MainFig.prototype.renderObject = async function (data) {
     .attr("class", "data_item")
     .attr("fill", (d) => TYPE2COLOR[d["type"]])
     .attr("selected", false)
-    .attr("id", (d) => d["id"])
+    .attr("id", (d) => "id_" + String(d["id"]))
     .attr("opacity", 1)
     .on("mouseover", this.mouseoverEvent)
     .on("mouseout", this.mouseoutEvent)
@@ -476,7 +479,7 @@ MainFig.prototype.renderObject = async function (data) {
     .attr("fill", (d) => TYPE2COLOR[d["type"]])
     .attr("selected", false)
     .attr("transform", zoom_transform)
-    .attr("id", (d) => d["id"])
+    .attr("id", (d) => "id_" + String(d["id"]))
     .attr("opacity", 1)
     .on("mouseover", this.mouseoverEvent)
     .on("mouseout", this.mouseoutEvent)
@@ -551,7 +554,7 @@ MainFig.prototype.updateObject = async function (transition) {
     .attr("fill", (d) => TYPE2COLOR[d["type"]])
     .attr("opacity", self.SELECTED_MODE ? 0.25 : 1)
     .attr("selected", false)
-    .attr("id", (d) => d["id"])
+    .attr("id", (d) => "id_" + String(d["id"]))
     .on("mouseover", self.mouseoverEvent)
     .on("mouseout", self.mouseoutEvent)
     .on("click", this.mouseclickEventFactory(data))
@@ -638,7 +641,7 @@ MainFig.prototype.updateObject = async function (transition) {
     .attr("transform", zoom_transform)
     .attr("opacity", self.SELECTED_MODE ? 0.25 : 1)
     .attr("selected", false)
-    .attr("id", (d) => d["id"])
+    .attr("id", (d) => "id_" + String(d["id"]))
     .on("mouseover", self.mouseoverEvent)
     .on("mouseout", self.mouseoutEvent)
     .on("click", this.mouseclickEventFactory(data))
@@ -673,17 +676,34 @@ MainFig.prototype.play = async function () {
   }
 };
 
-MainFig.prototype.NoHighlight = function(){
+MainFig.prototype.NoHighlight = function () {
   this.mapgroup.selectAll(".crosswalk").attr("stroke", "#CCCCCC");
-}
+};
 
 MainFig.prototype.highlightCrosslines = function (selectedCrossing) {
-  if(selectedCrossing in crossinglines){
+  if (selectedCrossing in crossinglines) {
     this.mapgroup
-    .selectAll(".crosswalk")
-    .filter((d) => crossinglines[selectedCrossing].includes(d.properties.fid))
-    .attr("stroke", "red");
+      .selectAll(".crosswalk")
+      .filter((d) => crossinglines[selectedCrossing].includes(d.properties.fid))
+      .attr("stroke", "red");
   }
+};
+
+MainFig.prototype.selectId = function (id) {
+  var self = this;
+  // 找到id对应的第一帧数据
+  time0 = new Date(1681341971599693);
+  ts0 = Math.floor(time0.getTime() / 1000); // TODO.
+  fetch(`http://127.0.0.1:5100/get_data_by_ts?ts=${ts0}`)
+    .then((response) => response.json())
+    .then(function (data) {
+      self.renderObject(data);
+      // 选择id
+      if (self.SELECTED_MODE) {
+        self.quitSelectedMode();
+      }
+      self.intoSelectedMode(id, data);
+    });
 };
 
 MainFig.prototype.show = async function (cache, mapData) {
