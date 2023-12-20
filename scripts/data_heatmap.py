@@ -4,7 +4,7 @@ from tqdm import trange
 import pickle
 
 
-interval = 1
+interval = 2
 model = Model(interval)
 
 start_ts = 1681340400
@@ -36,10 +36,14 @@ for i in trange(len(total_ts_minute)):
         index_y = int((pos["y"] - yMin) / grid_size)
         matrix[index_x, index_y] += 1
         n += 1
-    ts2matrix[cur_ts] = matrix.copy()
+    m_copy = matrix.copy()
+    m_nonzero = m_copy[m_copy != 0]
+    quant = np.quantile(m_nonzero, 0.99)
+    m_copy[m_copy > quant] = np.uint16(quant)
+    ts2matrix[cur_ts] = m_copy
 print(f"Done. There are {n} records.")
 
-with open("data_heatmap.pkl", "wb") as f:
+with open("static/data/data_heatmap.pkl", "wb") as f:
     pickle.dump(ts2matrix, f)
 # with open("data_heatmap.pkl", "rb") as f:
 #     ts2matrix2 = pickle.load(f)
