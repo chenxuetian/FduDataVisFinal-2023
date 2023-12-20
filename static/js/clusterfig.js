@@ -214,7 +214,10 @@ ClusterFig.prototype.showParall = function (allData, groupedData) {
         }
       }) // 恢复原状
       .on("click", function (event, d) {
-        // TODO: Select ID fig.
+        let id = d.id;
+        console.log(id);
+        idfig.updateId(id);
+        mainfig.selectId(id);
       });
 
     // 删掉不需要的线

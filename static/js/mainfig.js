@@ -691,18 +691,24 @@ MainFig.prototype.highlightCrosslines = function (selectedCrossing) {
 
 MainFig.prototype.selectId = function (id) {
   var self = this;
-  // 找到id对应的第一帧数据
-  time0 = new Date(1681341971599693);
-  ts0 = Math.floor(time0.getTime() / 1000); // TODO.
-  fetch(`http://127.0.0.1:5100/get_data_by_ts?ts=${ts0}`)
+  // 找到id对应的第一帧时间
+  // time0 = new Date(1681341971599693);
+  // ts0 = Math.floor(time0.getTime() / 1000); // TODO.
+
+  fetch(`http://127.0.0.1:5100/get_data_by_id?id=${id}`)
     .then((response) => response.json())
-    .then(function (data) {
-      self.renderObject(data);
-      // 选择id
-      if (self.SELECTED_MODE) {
-        self.quitSelectedMode();
-      }
-      self.intoSelectedMode(id, data);
+    .then(function (idData) {
+      ts0 = idData[0]["time_meas"];
+      fetch(`http://127.0.0.1:5100/get_data_by_ts?ts=${ts0}`)
+        .then((response) => response.json())
+        .then(async function (data) {
+          await self.renderObject(data);
+          // 选择id
+          if (self.SELECTED_MODE) {
+            self.quitSelectedMode();
+          }
+          self.intoSelectedMode(id, data);
+        });
     });
 };
 

@@ -149,7 +149,7 @@ function JamFig(pos, size) {
       // selected_Lanes = selected_Lanes.concat(crossing_lane_map[crossing][direction].out_cross);
     }
   }
-  this.selectedcross=-1;
+  this.selectedcross = -1;
 }
 
 JamFig.prototype.show = function (data) {
@@ -280,7 +280,7 @@ JamFig.prototype.show = function (data) {
     .attr("width", 1)
     .attr("height", this.innerHeight)
     .attr("opacity", 0)
-    .attr("fill", "#FFFFFF");
+    .attr("fill", "#EEEEEE");
   this.rect_1 = this.svg
     .append("rect")
     .attr("id", "rect_1")
@@ -289,7 +289,7 @@ JamFig.prototype.show = function (data) {
     .attr("width", 1)
     .attr("height", this.innerHeight)
     .attr("opacity", 0)
-    .attr("fill", "#FFFFFF");
+    .attr("fill", "#EEEEEE");
 
   const crossings = [1, 2, 3, 4, 5, 6, 7, 8];
   let isOpen = false;
