@@ -215,7 +215,7 @@ JamFig.prototype.show = function (data) {
     .attr("x", this.innerWidth + this.margin.right / 2 + 7)
     .attr("y", this.innerHeight + 5)
     .text("时间")
-    .style("font-size", "8px");
+    .style("font-size", "6px");
 
   const colorScale = d3
     .scaleOrdinal(d3.schemeCategory10) // 使用 D3 的一个内置颜色方案
@@ -227,7 +227,7 @@ JamFig.prototype.show = function (data) {
     .attr("x", 0 - this.margin.left / 2 + 5)
     .attr("dy", "1em")
     .style("text-anchor", "middle")
-    .style("font-size", "8px")
+    .style("font-size", "6px")
     .text("平均速度");
 
   jamfig_svg
@@ -235,20 +235,24 @@ JamFig.prototype.show = function (data) {
     .attr("x", this.innerWidth / 2)
     .attr("y", 0)
     .attr("text-anchor", "middle")
-    .style("font-size", "12px")
+    .style("font-size", "10px")
     .text("各路口平均速度折线图");
 
   for (let cross in data) {
     for (let direction in data[cross]) {
+      data_records = new Object();
+      Object.keys(data[cross][direction]).forEach((key) => {
+        if (key % 600 === 0) {
+          data_records[key] = data[cross][direction][key];
+        }
+      });
       let temp = {
         c: cross,
         d: direction,
-        value: Object.entries(data[cross][direction]).map((d) => {
-          // console.log(d);
+        value: Object.entries(data_records).map((d) => {
           return [new Date(d[0] * 1000), d[1]["v"]];
         }),
       };
-      // console.log(temp);
       jamfig_svg
         .append("path")
         .datum(temp)
@@ -271,7 +275,7 @@ JamFig.prototype.show = function (data) {
     .append("rect")
     .attr("id", "rect_0")
     .attr("x", 0)
-    .attr("y", 0)
+    .attr("y", 10)
     .attr("width", 1)
     .attr("height", this.innerHeight)
     .attr("opacity", 0)
@@ -280,7 +284,7 @@ JamFig.prototype.show = function (data) {
     .append("rect")
     .attr("id", "rect_1")
     .attr("x", 0)
-    .attr("y", 0)
+    .attr("y", 10)
     .attr("width", 1)
     .attr("height", this.innerHeight)
     .attr("opacity", 0)
@@ -342,15 +346,6 @@ JamFig.prototype.show = function (data) {
     });
     console.log("Selected crossing:", selectedCrossing);
   }
-
-  // lanesData.forEach(laneData => {
-  //     jamfig_svg.append("path")
-  //       .datum(laneData.values)
-  //       .attr("fill", "none")
-  //       .attr("stroke", colorScale(laneData.lane)) // 可以为每条线分配不同的颜色
-  //       .attr("stroke-width", 0.3)
-  //       .attr("d", lineGenerator);
-  // });
 
   const labels = {
     up: "北",

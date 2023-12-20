@@ -48,12 +48,6 @@ VolumeFig.prototype.show = function (types, data) {
     .append("g")
     .attr("transform", `translate(0, ${this.innerHeight})`)
     .call(d3.axisBottom(xScale).ticks(9).tickFormat(timeFormat));
-  this.fig
-    .append("text")
-    .attr("text-anchor", "end")
-    .attr("x", this.innerWidth)
-    .attr("y", this.innerHeight + 40)
-    .text("时间");
 
   // Y-axis and label
   const yScale = d3
@@ -65,10 +59,25 @@ VolumeFig.prototype.show = function (types, data) {
   this.fig
     .append("text")
     .attr("text-anchor", "end")
-    .attr("x", 0)
+    .attr("x", this.innerWidth / 2)
     .attr("y", -20)
-    .text("全时段全区域车流量")
-    .attr("text-anchor", "start");
+    .text("全区域车流量随时间折线图")
+    .attr("text-anchor", "middle");
+  this.fig
+    .append("text")
+    .attr("y", -this.margin.top / 2)
+    .attr("x", 0)
+    .attr("dy", "1em")
+    .style("text-anchor", "middle")
+    .style("font-size", "12px")
+    .text("车流量");
+  this.fig
+    .append("text")
+    .attr("text-anchor", "end")
+    .attr("x", this.innerWidth)
+    .attr("y", this.innerHeight + 30)
+    .text("时间")
+    .style("font-size", "12px");
 
   //////////
   // CHART //

@@ -1,7 +1,7 @@
 function QueueFig(pos, size) {
   this.x = pos.x;
   this.y = pos.y;
-  this.margin = { top: 20, right: 20, bottom: 20, left: 30 };
+  this.margin = { top: 30, right: 20, bottom: 20, left: 30 };
   this.outerWidth = size.width;
   this.outerHeight = size.height;
   this.innerWidth = size.width - this.margin.left - this.margin.right;
@@ -32,8 +32,8 @@ function QueueFig(pos, size) {
 }
 
 QueueFig.prototype.show = function (data) {
-  console.log(this.selected_Lanes);
-  console.log(data);
+  // console.log(this.selected_Lanes);
+  // console.log(data);
 
   let svg = this.svg;
   this.data = data;
@@ -61,11 +61,11 @@ QueueFig.prototype.show = function (data) {
   const processedData = Object.keys(aggregatedData).map((crossing) => {
     return { crossing, ...aggregatedData[crossing] };
   });
-  console.log(processedData);
+  // console.log(processedData);
 
   this.stack = d3.stack().keys(keys);
   const stackedData = this.stack(processedData);
-  console.log(stackedData);
+  // console.log(stackedData);
 
   this.xScale = d3
     .scaleBand()
@@ -134,9 +134,9 @@ QueueFig.prototype.show = function (data) {
   svg
     .append("text")
     .attr("x", this.innerWidth / 2)
-    .attr("y", 0 - this.margin.top / 2)
+    .attr("y", -10)
     .attr("text-anchor", "middle")
-    .style("font-size", "8px")
+    .style("font-size", "10px")
     .text("路口停车时间堆叠柱状图");
 
   svg
@@ -169,19 +169,19 @@ QueueFig.prototype.show = function (data) {
     .enter()
     .append("g")
     .attr("class", "legend")
-    .attr("transform", (d, i) => `translate(0,${i * 7 - 15})`);
+    .attr("transform", (d, i) => `translate(0,${i * 10 - 20})`);
 
   legend
     .append("rect")
     .attr("x", this.innerWidth - 8)
     .attr("width", 8)
-    .attr("height", 4)
+    .attr("height", 8)
     .style("fill", this.colorScale);
 
   legend
     .append("text")
     .attr("x", this.innerWidth - 12)
-    .attr("y", 2)
+    .attr("y", 4)
     .attr("dy", ".35em")
     .style("text-anchor", "end")
     .style("font-size", "6px") // 设置字体大小
@@ -200,6 +200,7 @@ QueueFig.prototype.update = function (time) {
 
   const keys = ["left", "right", "down", "up"];
   const aggregatedData = {};
+  console.log("cross data", data);
   for (cross in data) {
     aggregatedData[cross] = {};
     keys.forEach((key) => {
