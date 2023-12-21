@@ -57,6 +57,7 @@
   <script src="https://d3js.org/d3.v6.js"></script>
   <!-- topojson用于地图绘制，是一种对地理拓扑进行编码的方式 -->
   <script src="https://d3js.org/topojson.v1.min.js"></script>
+  <script src="{{url_for('static', filename='js/headblock.js')}}"></script>
   <script src="{{url_for('static', filename='js/mainfig.js')}}"></script>
   <script src="{{url_for('static', filename='js/volfig.js')}}"></script>
   <script src="{{url_for('static', filename='js/heatmap.js')}}"></script>
@@ -97,6 +98,14 @@
       7: [121, 122, 123, 124],
       8: [135, 136, 137, 138],
     };
+
+    // Logo和标题区域
+    const SIZE_HEAD = {
+      width: (WIDTH - MARGIN.left - MARGIN.right) / 5,
+      height: (HEIGHT - MARGIN.top - MARGIN.bottom) / 5,
+    };
+    const POS_HEAD = { x: MARGIN.left, y: MARGIN.top };
+    const head_block = new HeadBlock(POS_HEAD, SIZE_HEAD);
 
     // 个人ID视图
     const SIZE_ID = {
