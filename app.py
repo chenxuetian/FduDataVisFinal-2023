@@ -6,7 +6,7 @@ import pandas as pd
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
-from models import Model
+from src.models import Model
 
 
 app = Flask(__name__)
@@ -14,7 +14,8 @@ app = Flask(__name__)
 # flask_cors: Cross Origin Resource Sharing (CORS), making cross-origin AJAX possible.
 CORS(app)
 
-model = Model(10)
+interval = 10
+model = Model(interval)
 print("================================================================")
 
 @app.route('/', methods=["GET"])
@@ -58,4 +59,4 @@ def get_heatmap_data_by_ts():
 
 
 if __name__ == "__main__":
-    app.run(host='127.0.0.1', port=5100, use_reloader=True, debug=True)
+    app.run(host='127.0.0.1', port=5100, use_reloader=False, debug=False)

@@ -8,22 +8,22 @@ function IdFig(pos, size) {
   this.innerWidth = size.width - this.margin.left - this.margin.right;
   this.innerHeight = size.height - this.margin.top - this.margin.bottom;
 
-  this.idsvgPos = { x: 0, y: 0 };
+  this.idsvgPos = { x: 0, y: this.outerHeight / 7 };
   this.idsvgSize = {
     width: this.innerWidth,
-    height: this.outerHeight / 3,
+    height: this.outerHeight / 5,
   };
 
-  this.radioPos = { x: 0, y: this.outerHeight / 3 };
+  this.radioPos = { x: 0, y: this.outerHeight / 7 + this.outerHeight / 7 };
   this.radioSize = {
     width: this.innerWidth,
     height: this.outerHeight / 3,
   };
 
-  this.histfigPos = { x: 0, y: (this.outerHeight * 2) / 3 };
+  this.histfigPos = { x: 0, y: (this.outerHeight * 8) / 15 };
   this.histfigSize = {
     width: this.innerWidth,
-    height: this.outerHeight / 3,
+    height: (this.outerHeight * 7) / 15,
   };
 
   this.CLUSTER_COLORS = {
@@ -41,6 +41,16 @@ function IdFig(pos, size) {
     .attr("y", this.y)
     .attr("width", this.outerWidth)
     .attr("height", this.outerHeight);
+
+  this.bound = this.fig
+    .append("rect")
+    .attr("fill-opacity", 0)
+    .attr("stroke-opacity", 1)
+    .attr("stroke-width", 2.5)
+    .attr("stroke", "black")
+    .attr("width", this.outerWidth)
+    .attr("height", (this.outerHeight / 5) * 4 - 48)
+    .attr("y", this.outerHeight / 5);
 
   // id选择图svg
   this.idsvg = this.fig
@@ -92,15 +102,67 @@ IdFig.prototype.renderId = function (allData, id) {
   const selected_item = allData.find((item) => item.id === id);
   self.idsvg.selectAll("*").remove();
 
+  function calculateMedian(values) {
+    if (values.length === 0) return 0;
+
+    values.sort((a, b) => a - b);
+    const half = Math.floor(values.length / 2);
+
+    if (values.length % 2) {
+      return values[half];
+    }
+
+    return (values[half - 1] + values[half]) / 2.0;
+  }
+
+  function addVelocityScore(allData) {
+    // 提取出所有 mean_velocity 的值
+    const meanVelocities = allData.map((item) => item.mean_velocity);
+
+    // 计算 mean_velocity 的中位数
+    const medianVelocity = calculateMedian(meanVelocities);
+
+    // 为每个元素添加 velocity_score
+    allData.forEach((item) => {
+      item.velocity_score = Math.abs(item.mean_velocity - medianVelocity);
+    });
+    const max_score = Math.max(...allData.map((item) => item.velocity_score));
+
+    // 如果最大分数是 0，则避免除以零的情况
+    if (max_score === 0) return;
+
+    // 对每个元素的 velocity_score 进行归一化处理
+    allData.forEach((item) => {
+      item.normalized_score = (item.velocity_score / max_score) * 10;
+    });
+  }
+
+  addVelocityScore(allData);
+
   // 设置文本说明和对应的字段
+  // ID，聚类结果，类型，得分
+  const types = {
+    "-1": "未知",
+    1: "小型车辆",
+    2: "行人",
+    3: "非机动车",
+    4: "卡车",
+    5: "厢式货车、面包车",
+    6: "客车",
+    7: "静态物体",
+    8: "路牙",
+    9: "锥桶",
+    10: "手推车、三轮车",
+    11: "信号灯",
+    12: "出入口",
+  };
   const texts = [
-    { label: "平均速度", field: "mean_velocity" },
-    { label: "最大加速度", field: "max_acceleration" },
-    { label: "急变速次数", field: "rapid_acceleration_count" },
-    { label: "占道次数", field: "occupy_count" },
-    { label: "超速次数", field: "overspeed_count" },
-    { label: "连续变道次数", field: "consecutive_lane_changes_count" },
+    { label: "ID", field: "id" },
+    { label: "聚类种类", field: "Cluster" },
+    { label: "类型", field: "type" },
+    { label: "文明得分", field: "velocity_score" },
   ];
+  selected_item.type_name = types[selected_item.type];
   const groupWidth = self.idsvgSize.width * 0.45;
   const groupHeight = 50; // 可以根据需要调整
 
@@ -111,7 +173,7 @@ IdFig.prototype.renderId = function (allData, id) {
       .attr(
         "transform",
         `translate(${(index % 2) * groupWidth}, ${
-          Math.floor(index / 2) * groupHeight
+          Math.floor(index / 2) * groupHeight + 50
         })`
       );
 
@@ -127,7 +189,11 @@ IdFig.prototype.renderId = function (allData, id) {
       .append("text")
       .attr("x", 10) // 横坐标位置，可以根据需要调整
       .attr("y", 40) // 纵坐标位置，略低于说明文本
-      .text(parseFloat(selected_item[text.field]).toFixed(2)); // 保留两位小数
+      .text(
+        index === 3
+          ? parseFloat(selected_item[text.field]).toFixed(2)
+          : selected_item[text.field]
+      ); // 保留两位小数
   });
 };
 
@@ -347,13 +413,160 @@ IdFig.prototype.renderRadio = function (allData, id) {
   self.renderPolygons();
 };
 
-IdFig.prototype.renderHist = function (allData, groupedData) {};
+IdFig.prototype.renderHist = function (allData, id) {
+  var self = this;
+
+  function calculateMedian(values) {
+    if (values.length === 0) return 0;
+
+    values.sort((a, b) => a - b);
+    const half = Math.floor(values.length / 2);
+
+    if (values.length % 2) {
+      return values[half];
+    }
+
+    return (values[half - 1] + values[half]) / 2.0;
+  }
+
+  function addVelocityScore(allData) {
+    // 提取出所有 mean_velocity 的值
+    const meanVelocities = allData.map((item) => item.mean_velocity);
+
+    // 计算 mean_velocity 的中位数
+    const medianVelocity = calculateMedian(meanVelocities);
+
+    // 为每个元素添加 velocity_score
+    allData.forEach((item) => {
+      item.velocity_score = Math.abs(item.mean_velocity - medianVelocity);
+    });
+    const max_score = Math.max(...allData.map((item) => item.velocity_score));
+
+    // 如果最大分数是 0，则避免除以零的情况
+    if (max_score === 0) return;
+
+    // 对每个元素的 velocity_score 进行归一化处理
+    allData.forEach((item) => {
+      item.normalized_score = (item.velocity_score / max_score) * 10;
+    });
+  }
+
+  addVelocityScore(allData);
+  // 1. 选择 SVG 元素
+  const svg = self.histfig; // 假设 self.histfig 是 SVG 元素
+  const margin = { top: 10, right: 30, bottom: 30, left: 40 };
+  const width = +svg.attr("width") - margin.left - margin.right;
+  const height = +svg.attr("height") - margin.top - margin.bottom;
+
+  // 2. 准备数据：从 allData 中提取 velocity_score 的值
+  const data = allData.map((item) => item.velocity_score);
+
+  // 3. 创建比例尺
+  const x = d3
+    .scaleLinear()
+    .domain([0, d3.max(data)])
+    .range([0, width]);
+
+  const histogram = d3
+    .histogram()
+    .value((d) => d)
+    .domain(x.domain())
+    .thresholds(x.ticks(20));
+
+  const bins = histogram(data);
+
+  const y = d3
+    .scaleLinear()
+    .domain([0, d3.max(bins, (d) => d.length)])
+    .range([height - 50, 150]);
+
+  // 4. 创建直方图生成器并绘制直方图
+  svg
+    .append("g")
+    .attr("transform", `translate(${margin.left},${margin.top})`)
+    .selectAll("rect")
+    .data(bins)
+    .enter()
+    .append("rect")
+    .attr("x", 1)
+    .attr("transform", (d) => `translate(${x(d.x0)},${y(d.length)})`)
+    .attr("width", (d) => x(d.x1) - x(d.x0) - 1)
+    .attr("height", (d) => height - 50 - y(d.length))
+    .style("fill", "#69b3a2");
+
+  const selected_item = [allData.find((item) => item.id === id)];
+  // 假设 selected_item 已经定义并包含 velocity_score
+  console.log(selected_item);
+  const selectedVelocityScore = selected_item[0].velocity_score;
+  console.log(selected_item.velocity_score);
+
+  // 在直方图上绘制红色竖线
+  svg.selectAll(".line").remove();
+  svg
+    .append("line")
+    .attr("x1", x(selectedVelocityScore))
+    .attr("x2", x(selectedVelocityScore))
+    .attr("y1", 140)
+    .attr("y2", height - 50)
+    .attr("stroke", "red")
+    .attr("stroke-width", 2)
+    .attr("class", "line")
+    .attr("transform", `translate(${margin.left},${margin.top})`);
+
+  // 添加标题
+  svg
+    .append("text")
+    .attr("x", width / 2)
+    .attr("y", margin.top + 120)
+    .attr("text-anchor", "middle")
+    .style("font-size", "16px")
+    .style("text-decoration", "underline")
+    .text("文明评分分布图");
+
+  // 添加 X 轴标签
+  svg
+    .append("text")
+    .attr(
+      "transform",
+      "translate(" + width + " ," + (height - 40 + margin.top + 20) + ")"
+    )
+    .style("text-anchor", "start")
+    .text("score");
+
+  // 添加 Y 轴标签
+  svg
+    .append("text")
+    .attr("transform", "rotate(-90)")
+    .attr("y", 0 - margin.left)
+    .attr("x", 0 - height / 2)
+    .attr("dy", "1em")
+    .style("text-anchor", "middle")
+    .text("频数");
+
+  // 添加 X 轴
+  svg
+    .append("g")
+    .attr("transform", `translate(${margin.left},${height - 50 + margin.top})`)
+    .call(d3.axisBottom(x));
+
+  // 添加 Y 轴
+  svg
+    .append("g")
+    .attr("transform", `translate(${margin.left},${margin.top})`)
+    .call(d3.axisLeft(y));
+};
 
 IdFig.prototype.show = function (allData) {
   var self = this;
   var init_id = 201020457;
   self.renderId(allData, init_id);
   self.renderRadio(allData, init_id);
+  self.renderHist(allData, init_id);
 };
 
-IdFig.prototype.updateId = function (Id) {};
+IdFig.prototype.updateId = function (Id) {
+  var self = this;
+  self.renderId(allData, Id);
+  self.renderRadio(allData, Id);
+  self.renderHist(allData, Id);
+};
