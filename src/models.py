@@ -6,9 +6,10 @@ from scipy.sparse import coo_matrix
 
 import src.util as util
 
-
-data_dir = "data/1.3_traffic"
-id_dir = "merged_data_ids/1.3_traffic/"
+###### 修改此变量为交通态势可视分析原始数据的目录 ######
+data_dir = "data/题目1-2 交通态势可视分析/交通态势可视分析"
+######
+id_dir = "merged_data_ids"
 pdata_dir = "static/data"
 
 # merge records

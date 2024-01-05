@@ -1,8 +1,8 @@
 import sys 
 sys.path.append("..")
 import util
-data_dir = "data/1.3_traffic/"
-id_dir = "merged_data_ids/1.3_traffic/"
+data_dir = "data/题目1-2 交通态势可视分析/交通态势可视分析"
+id_dir = "merged_data_ids"
 interval = 10
 all_records = util.read_data(data_dir,id_dir,interval)
 
