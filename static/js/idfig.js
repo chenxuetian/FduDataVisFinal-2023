@@ -133,7 +133,8 @@ IdFig.prototype.renderId = function (allData, id) {
 
     // 对每个元素的 velocity_score 进行归一化处理
     allData.forEach((item) => {
-      item.normalized_score = (item.velocity_score / max_score) * 10;
+      item.normalized_score = (item.velocity_score / max_score) * 8;
+      item.fin_score = 100 - (item.normalized_score + 0.8*item.max_acceleration + item.rapid_acceleration_count + item.occupy_count + 1.2*item.overspeed_count + item.consecutive_lane_changes_count);
     });
   }
 
@@ -160,7 +161,7 @@ IdFig.prototype.renderId = function (allData, id) {
     { label: "ID", field: "id" },
     { label: "聚类种类", field: "Cluster" },
     { label: "类型", field: "type" },
-    { label: "文明得分", field: "velocity_score" },
+    { label: "文明得分", field: "fin_score" },
   ];
   selected_item.type_name = types[selected_item.type];
   const groupWidth = self.idsvgSize.width * 0.45;
@@ -447,7 +448,8 @@ IdFig.prototype.renderHist = function (allData, id) {
 
     // 对每个元素的 velocity_score 进行归一化处理
     allData.forEach((item) => {
-      item.normalized_score = (item.velocity_score / max_score) * 10;
+      item.normalized_score = (item.velocity_score / max_score) * 8;
+      item.fin_score = 100 - (item.normalized_score + 0.8*item.max_acceleration + item.rapid_acceleration_count + item.occupy_count + 1.2*item.overspeed_count + item.consecutive_lane_changes_count)
     });
   }
 
@@ -459,7 +461,7 @@ IdFig.prototype.renderHist = function (allData, id) {
   const height = +svg.attr("height") - margin.top - margin.bottom;
 
   // 2. 准备数据：从 allData 中提取 velocity_score 的值
-  const data = allData.map((item) => item.velocity_score);
+  const data = allData.map((item) => item.fin_score);
 
   // 3. 创建比例尺
   const x = d3
@@ -497,15 +499,15 @@ IdFig.prototype.renderHist = function (allData, id) {
   const selected_item = [allData.find((item) => item.id === id)];
   // 假设 selected_item 已经定义并包含 velocity_score
   console.log(selected_item);
-  const selectedVelocityScore = selected_item[0].velocity_score;
-  console.log(selected_item.velocity_score);
+  const selectedFinScore = selected_item[0].fin_score;
+  console.log(selected_item.fin_score);
 
   // 在直方图上绘制红色竖线
   svg.selectAll(".line").remove();
   svg
     .append("line")
-    .attr("x1", x(selectedVelocityScore))
-    .attr("x2", x(selectedVelocityScore))
+    .attr("x1", x(selectedFinScore))
+    .attr("x2", x(selectedFinScore))
     .attr("y1", 140)
     .attr("y2", height - 50)
     .attr("stroke", "red")
