@@ -85,7 +85,7 @@ function ClusterFig(pos, size) {
     rapid_acceleration_count: "急变速次数",
     occupy_count: "占道次数",
     overspeed_count: "超速次数",
-    consecutive_lane_changes_count: "连续变道次数",
+    consecutive_lane_changes_count: "连变道次数",
   };
 
   this.CLUSTER_COLORS = {

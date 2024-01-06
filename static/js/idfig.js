@@ -93,7 +93,7 @@ function IdFig(pos, size) {
     rapid_acceleration_count: "急变速次数",
     occupy_count: "占道次数",
     overspeed_count: "超速次数",
-    consecutive_lane_changes_count: "连续变道次数",
+    consecutive_lane_changes_count: "连变道次数",
   };
 }
 
@@ -134,7 +134,14 @@ IdFig.prototype.renderId = function (allData, id) {
     // 对每个元素的 velocity_score 进行归一化处理
     allData.forEach((item) => {
       item.normalized_score = (item.velocity_score / max_score) * 8;
-      item.fin_score = 100 - (item.normalized_score + 0.8*item.max_acceleration + item.rapid_acceleration_count + item.occupy_count + 1.2*item.overspeed_count + item.consecutive_lane_changes_count);
+      item.fin_score =
+        100 -
+        (item.normalized_score +
+          0.8 * item.max_acceleration +
+          item.rapid_acceleration_count +
+          item.occupy_count +
+          1.2 * item.overspeed_count +
+          item.consecutive_lane_changes_count);
     });
   }
 
@@ -449,7 +456,14 @@ IdFig.prototype.renderHist = function (allData, id) {
     // 对每个元素的 velocity_score 进行归一化处理
     allData.forEach((item) => {
       item.normalized_score = (item.velocity_score / max_score) * 8;
-      item.fin_score = 100 - (item.normalized_score + 0.8*item.max_acceleration + item.rapid_acceleration_count + item.occupy_count + 1.2*item.overspeed_count + item.consecutive_lane_changes_count)
+      item.fin_score =
+        100 -
+        (item.normalized_score +
+          0.8 * item.max_acceleration +
+          item.rapid_acceleration_count +
+          item.occupy_count +
+          1.2 * item.overspeed_count +
+          item.consecutive_lane_changes_count);
     });
   }
 
